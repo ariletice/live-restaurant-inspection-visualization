@@ -7,8 +7,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const origin = `${protocol}://${host}`;
-  const title = "What Does the Season Reveal? | NYC Restaurant Inspections";
-  const description = "An interactive data story exploring seasonal patterns in critical NYC restaurant inspection violations.";
+  const title = "NYC Pest Prep | A Seasonal Guide for Restaurant Teams";
+  const description = "An interactive guide showing when critical rat, mouse, roach, and fly violations are most often detected in NYC restaurant inspections.";
   return {
     title,
     description,
