@@ -46,7 +46,7 @@ function SeasonMark({ season }: { season: Season }) {
 }
 
 function PestMark({ pest }: { pest: PestType }) {
-  return <span className={`pest-mark pest-${pest}`} aria-hidden="true">{pestConfig[pest].mark}</span>;
+  return <span className={`pest-mark pest-${pest}`} aria-hidden="true"><span className="pest-silhouette">{pestConfig[pest].mark}</span></span>;
 }
 
 function SeasonalBars({ pest, analysis, prediction }: { pest: PestType; analysis: PestAnalysis; prediction: Season | null }) {
