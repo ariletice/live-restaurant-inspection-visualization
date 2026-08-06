@@ -349,8 +349,8 @@ export default function Home() {
           <div className="scene context-scene">
             <div className="context-copy">
               <p className="eyebrow">Before we look at the numbers</p>
-              <h2>Every NYC restaurant receives at least one unannounced inspection each year.</h2>
-              <p>Inspectors look for conditions that can immediately affect food safety. Three critical categories tell three different seasonal stories.</p>
+              <h2>NYC restaurants are inspected under the same health standards year-round—but critical risks may not follow the same calendar.</h2>
+              <p>This story tests whether unsafe food temperatures, pests, and worker hygiene appear at different rates across seasons.</p>
             </div>
             <div className="risk-cards">
               {(["temperature", "pest", "hygiene"] as Category[]).map((category, index) => (
