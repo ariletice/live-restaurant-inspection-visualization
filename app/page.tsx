@@ -219,12 +219,12 @@ export default function Home() {
           <div className="scene context-scene">
             <div className="context-copy">
               <p className="eyebrow">Why timing matters</p>
-              <h2>The fall pest peak is not really a rodent story.</h2>
-              <p>When all pest violations are combined, fall looks like the riskiest season. Separating them reveals two different timelines—and more useful preparation windows for restaurant teams.</p>
+              <h2>Prevention starts before an inspector arrives.</h2>
+              <p>Critical pest violations can affect a restaurant’s grade, reputation, and ability to operate safely. Understanding when inspectors most often record them can help restaurant teams decide when to strengthen prevention—without predicting any individual inspection.</p>
             </div>
             <div className="split-pattern">
-              <article className="pattern-card rodent-card"><span>Winter → Spring</span><h3>Rodent detections</h3><p>Rat and mouse violation rates are strongest during colder months and early spring.</p><div><PestMark pest="rats" /><PestMark pest="mice" /></div></article>
-              <article className="pattern-card insect-card"><span>Summer → Fall</span><h3>Insect detections</h3><p>Roach and fly violation rates build later, with flies rising sharply into fall.</p><div><PestMark pest="roaches" /><PestMark pest="flies" /></div></article>
+              <article className="pattern-card rodent-card"><span>Inspection schedule</span><h3>Unannounced</h3><p>Every NYC restaurant is scheduled for at least one unannounced health inspection each year.</p></article>
+              <article className="pattern-card insect-card"><span>Analysis scope</span><h3>Four critical pest violations</h3><p>We followed rat, mouse, roach, and fly violations across {analysis.inspectionCount.toLocaleString()} unique initial inspections.</p><div>{pestTypes.map((pest) => <PestMark pest={pest} key={pest} />)}</div></article>
             </div>
           </div>
         )}
