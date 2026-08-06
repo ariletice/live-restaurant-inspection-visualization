@@ -1,4 +1,18 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import { sql } from "drizzle-orm";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const audienceVotes = sqliteTable("audience_votes", {
+  voterId: text("voter_id").primaryKey(),
+  season: text("season").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const audienceVotesSchemaSql = `
+  CREATE TABLE IF NOT EXISTS audience_votes (
+    voter_id TEXT PRIMARY KEY NOT NULL,
+    season TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+  )
+`;

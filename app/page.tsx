@@ -36,6 +36,13 @@ const seasonMonths: Record<Season, string> = {
   Fall: "Sep–Nov",
 };
 
+type AudiencePollResults = { counts: Record<Season, number>; total: number };
+
+const emptyAudiencePoll: AudiencePollResults = {
+  counts: { Winter: 0, Spring: 0, Summer: 0, Fall: 0 },
+  total: 0,
+};
+
 function formatRate(value: number) {
   return `${value.toFixed(1)}%`;
 }
@@ -101,6 +108,8 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<PestAnalysis>(fallbackPestAnalysis);
   const [dataStatus, setDataStatus] = useState<"loading" | "live" | "saved">("loading");
   const [lastChecked, setLastChecked] = useState("");
+  const [audiencePoll, setAudiencePoll] = useState<AudiencePollResults>(emptyAudiencePoll);
+  const [pollStatus, setPollStatus] = useState<"loading" | "connected" | "saving" | "unavailable">("loading");
 
   const fetchLiveData = useCallback(async () => {
     setDataStatus("loading");
@@ -119,6 +128,47 @@ export default function Home() {
   }, []);
 
   useEffect(() => { void fetchLiveData(); }, [fetchLiveData]);
+
+  const fetchAudiencePoll = useCallback(async () => {
+    try {
+      const response = await fetch("/api/poll");
+      if (!response.ok) throw new Error("Audience poll is unavailable");
+      const results = (await response.json()) as AudiencePollResults;
+      setAudiencePoll(results);
+      setPollStatus("connected");
+    } catch {
+      setPollStatus("unavailable");
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchAudiencePoll();
+    const pollInterval = window.setInterval(() => void fetchAudiencePoll(), 15000);
+    return () => window.clearInterval(pollInterval);
+  }, [fetchAudiencePoll]);
+
+  const submitAudienceVote = useCallback(async (season: Season) => {
+    setOverallPrediction(season);
+    setPollStatus("saving");
+    try {
+      const storageKey = "nyc-pest-prep-voter-id";
+      let voterId = window.localStorage.getItem(storageKey);
+      if (!voterId) {
+        voterId = window.crypto.randomUUID();
+        window.localStorage.setItem(storageKey, voterId);
+      }
+      const response = await fetch("/api/poll", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ season, voterId }),
+      });
+      if (!response.ok) throw new Error("Audience vote was not saved");
+      setAudiencePoll((await response.json()) as AudiencePollResults);
+      setPollStatus("connected");
+    } catch {
+      setPollStatus("unavailable");
+    }
+  }, []);
 
   const togglePest = useCallback((pest: PestType) => {
     setSelectedPests((current) => current.includes(pest) ? current.filter((item) => item !== pest) : [...current, pest]);
@@ -148,6 +198,7 @@ export default function Home() {
   const primaryConfig = pestConfig[primaryPest];
   const overallPeak = peakSeason(analysis.overallSeasonal);
   const overallMax = Math.max(...seasons.map((season) => analysis.overallSeasonal[season]));
+  const audienceMax = Math.max(1, ...seasons.map((season) => audiencePoll.counts[season]));
 
   return (
     <main className="story-shell">
@@ -201,12 +252,12 @@ export default function Home() {
             <div className="prediction-heading"><p className="eyebrow">Make one prediction</p><h2>Which season has the highest rate of critical pest violations?</h2><p className="instruction">Choose the season you think had the largest share of 2025 initial inspections with at least one critical rat, mouse, roach, or fly violation.</p></div>
             <div className="season-choices" role="group" aria-label="Choose the season with the highest overall critical pest violation rate">
               {seasons.map((season) => (
-                <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => setOverallPrediction(season)} aria-pressed={overallPrediction === season}>
+                <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => void submitAudienceVote(season)} aria-pressed={overallPrediction === season}>
                   <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
                 </button>
               ))}
             </div>
-            <p className="choice-confirmation">{overallPrediction ? `You predicted ${overallPrediction}. Continue to see the inspection data.` : "Choose one season to continue."}</p>
+            <p className="choice-confirmation">{!overallPrediction ? "Choose one season to continue." : pollStatus === "saving" ? `Saving your ${overallPrediction} prediction…` : pollStatus === "connected" ? `Your ${overallPrediction} prediction is in. Continue to compare it with the inspection data.` : `You predicted ${overallPrediction}. Community voting is not connected in this preview, but you can continue.`}</p>
           </div>
         )}
 
@@ -233,7 +284,27 @@ export default function Home() {
                   );
                 })}
               </div>
-              <div className="audience-results-slot" aria-live="polite"><span>LIVE AUDIENCE POLL</span><strong>Audience responses will appear here.</strong><p>This preview will stay empty until shared voting is connected—no responses are invented.</p></div>
+              <div className="audience-poll-panel" aria-live="polite">
+                <div className="audience-poll-heading"><span>LIVE AUDIENCE POLL</span><strong>What visitors predicted</strong></div>
+                {audiencePoll.total > 0 ? (
+                  <div className="audience-poll-bars">
+                    {seasons.map((season) => {
+                      const votes = audiencePoll.counts[season];
+                      const percentage = (votes / audiencePoll.total) * 100;
+                      return (
+                        <div className={`audience-poll-row ${overallPrediction === season ? "your-vote" : ""}`} key={season}>
+                          <span>{season}</span>
+                          <div><i style={{ width: `${(votes / audienceMax) * 100}%` }} /></div>
+                          <strong>{percentage.toFixed(0)}%</strong>
+                        </div>
+                      );
+                    })}
+                    <p>{audiencePoll.total.toLocaleString()} real response{audiencePoll.total === 1 ? "" : "s"}, including yours. Results refresh every 15 seconds.</p>
+                  </div>
+                ) : (
+                  <div className="audience-poll-empty"><strong>{pollStatus === "unavailable" ? "Shared voting is not connected in this preview." : "Waiting for the first audience response."}</strong><p>No sample or invented responses are shown.</p></div>
+                )}
+              </div>
             </div>
           </div>
         )}
