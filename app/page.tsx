@@ -203,10 +203,10 @@ export default function Home() {
         {chapter === 0 && (
           <div className="scene cover-scene">
             <div className="cover-copy">
-              <p className="eyebrow">A seasonal pest-readiness guide for NYC restaurants</p>
-              <h1>Know what peaks before your next inspection.</h1>
-              <p className="dek">Rats, mice, roaches, and flies do not follow the same calendar. Your prevention plan should not treat them as one problem.</p>
-              <button className="primary-button" onClick={goNext}>Prepare your restaurant <span>→</span></button>
+              <p className="eyebrow">What {analysis.inspectionCount.toLocaleString()} NYC initial inspections revealed</p>
+              <h1>Is there one pest season for every NYC restaurant?</h1>
+              <p className="dek">Every NYC restaurant is scheduled for at least one unannounced health inspection each year. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
+              <button className="primary-button" onClick={goNext}>Explore the pattern <span>→</span></button>
             </div>
             <div className="floating-pests" aria-hidden="true">
               {pestTypes.map((pest, index) => <div className={`floating-card float-${index + 1}`} key={pest}><PestMark pest={pest} /><span>{pestConfig[pest].name}</span></div>)}
