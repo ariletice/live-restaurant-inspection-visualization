@@ -208,8 +208,12 @@ export default function Home() {
               <p className="dek">Every NYC restaurant is scheduled for at least one unannounced health inspection each year. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
               <button className="primary-button" onClick={goNext}>Explore the pattern <span>→</span></button>
             </div>
-            <div className="floating-pests" aria-hidden="true">
-              {pestTypes.map((pest, index) => <div className={`floating-card float-${index + 1}`} key={pest}><PestMark pest={pest} /><span>{pestConfig[pest].name}</span></div>)}
+            <div className="pest-crawlers" aria-hidden="true">
+              {pestTypes.map((pest, index) => (
+                <span className={`pest-crawler crawler-${index + 1}`} key={pest}>
+                  <span className="crawler-silhouette">{pestConfig[pest].mark}</span>
+                </span>
+              ))}
             </div>
             <p className="cover-note">Based on {analysis.inspectionCount.toLocaleString()} unique initial inspections conducted in 2025</p>
           </div>
