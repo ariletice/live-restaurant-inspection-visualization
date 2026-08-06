@@ -203,9 +203,9 @@ export default function Home() {
         {chapter === 0 && (
           <div className="scene cover-scene">
             <div className="cover-copy">
-              <p className="eyebrow">What {analysis.inspectionCount.toLocaleString()} NYC initial inspections revealed</p>
+              <p className="eyebrow">What <span className="inspection-count-highlight">{analysis.inspectionCount.toLocaleString()}</span> NYC initial inspections revealed</p>
               <h1>Is there one pest season for every NYC restaurant?</h1>
-              <p className="dek">Every NYC restaurant is scheduled for at least one unannounced health inspection each year. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
+              <p className="dek">Every NYC restaurant is scheduled for <mark className="inspection-fact-highlight">at least one unannounced health inspection each year</mark>. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
               <button className="primary-button" onClick={goNext}>Explore the pattern <span>→</span></button>
             </div>
             <div className="pest-crawlers" aria-hidden="true">

@@ -58,6 +58,8 @@ p { line-height: 1.55; }
 .cover-scene { overflow: hidden; position: relative; text-align: center; }
 .cover-copy { position: relative; z-index: 3; max-width: 1000px; }
 .cover-copy .eyebrow { color: var(--ink); }
+.inspection-count-highlight { display: inline-block; margin-inline: .12em; padding: .15em .38em; border-radius: 3px; background: var(--green); color: var(--green-dark); }
+.inspection-fact-highlight { padding-inline: .08em; background: linear-gradient(transparent 58%, var(--blue-soft) 58%); color: inherit; }
 .dek { margin: 0 auto 32px; max-width: 720px; font: clamp(19px,2vw,27px)/1.45 Georgia, serif; }
 .primary-button { border: 0; border-radius: 999px; background: var(--ink); color: white; padding: 15px 23px; font-weight: 800; cursor: pointer; box-shadow: var(--shadow); }
 .primary-button span { margin-left: 14px; }
