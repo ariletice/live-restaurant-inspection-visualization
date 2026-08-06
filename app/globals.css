@@ -48,7 +48,7 @@ p { line-height: 1.55; }
 .instruction { color: var(--muted); font-family: Georgia, serif; font-style: italic; }
 .centered { text-align: center; margin-inline: auto; }
 
-.pest-mark { display: inline-grid; place-items: center; flex: none; width: 58px; height: 58px; border: 1px solid currentColor; border-radius: 50%; font: 900 23px Georgia, serif; background: white; }
+.pest-mark { display: inline-grid; place-items: center; flex: none; width: 58px; height: 58px; border: 1px solid currentColor; border-radius: 50%; font: 400 27px/1 "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; background: white; }
 .pest-rats .pest-mark, .pest-mark.pest-rats { color: var(--orange); }
 .pest-mice .pest-mark, .pest-mark.pest-mice { color: var(--green-dark); }
 .pest-roaches .pest-mark, .pest-mark.pest-roaches { color: var(--blue); }
