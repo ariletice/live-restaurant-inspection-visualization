@@ -49,44 +49,34 @@ function PestMark({ pest }: { pest: PestType }) {
   return <span className={`pest-mark pest-${pest}`} aria-hidden="true"><span className="pest-silhouette">{pestConfig[pest].mark}</span></span>;
 }
 
-function SeasonalBars({ pest, analysis, prediction }: { pest: PestType; analysis: PestAnalysis; prediction: Season | null }) {
+function SeasonalResultCard({ pest, analysis, prediction }: { pest: PestType; analysis: PestAnalysis; prediction?: Season }) {
   const values = analysis.seasonal[pest];
   const peak = peakSeason(values);
   const max = Math.max(...seasons.map((season) => values[season]));
   const config = pestConfig[pest];
 
   return (
-    <div className="result-layout" style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
-      <div className="result-copy">
-        <p className="eyebrow">Your result</p>
+    <article className={`multi-result-card pest-${pest}`} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
+      <div className="result-card-heading">
         <PestMark pest={pest} />
-        <h2>{config.name} peak in <em>{peak.toLowerCase()}</em>.</h2>
-        <p>
-          {prediction ? `You predicted ${prediction.toLowerCase()}. ` : ""}
-          {pest === "rats" && "Rat detections are highest in spring, with March producing the strongest monthly rate."}
-          {pest === "mice" && "Mouse detections remain common throughout the year and are highest in spring overall."}
-          {pest === "roaches" && "Roach detections build during the warmer months and reach their highest seasonal rate in fall."}
-          {pest === "flies" && "Fly and nuisance-pest detections rise sharply after spring and reach their highest rate in fall."}
-        </p>
-        <div className="definition-note">
-          <strong>How to read this</strong>
-          <span>Each percentage is the share of unique 2025 initial inspections containing this specific critical pest violation.</span>
+        <div>
+          <p>{prediction ? `You predicted ${prediction}` : "Your result"}</p>
+          <h3>{config.name} peak in <em>{peak}</em>.</h3>
         </div>
       </div>
-      <div className="season-bar-chart" aria-label={`${config.name} critical violation rates by season`}>
+      <div className="mini-season-bars" aria-label={`${config.name} critical violation rates by season`}>
         {seasons.map((season) => {
           const isPeak = season === peak;
           return (
-            <div className={`season-bar-row ${isPeak ? "peak" : ""}`} key={season}>
-              <div className="season-label"><SeasonMark season={season} /><span>{season}<small>{seasonMonths[season]}</small></span></div>
-              <div className="season-track"><div className="season-fill" style={{ width: `${(values[season] / max) * 100}%` }} /></div>
+            <div className={`mini-season-row ${isPeak ? "peak" : ""}`} key={season}>
+              <span>{season}</span>
+              <div><i style={{ width: `${(values[season] / max) * 100}%` }} /></div>
               <strong>{formatRate(values[season])}</strong>
-              {isPeak && <span className="highest-label">highest</span>}
             </div>
           );
         })}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -137,8 +127,8 @@ function MonthlyChart({ pest, analysis }: { pest: PestType; analysis: PestAnalys
 
 export default function Home() {
   const [chapter, setChapter] = useState(0);
-  const [selectedPest, setSelectedPest] = useState<PestType | null>(null);
-  const [prediction, setPrediction] = useState<Season | null>(null);
+  const [selectedPests, setSelectedPests] = useState<PestType[]>([]);
+  const [predictions, setPredictions] = useState<Partial<Record<PestType, Season>>>({});
   const [analysis, setAnalysis] = useState<PestAnalysis>(fallbackPestAnalysis);
   const [dataStatus, setDataStatus] = useState<"loading" | "live" | "saved">("loading");
   const [lastChecked, setLastChecked] = useState("");
@@ -161,11 +151,21 @@ export default function Home() {
 
   useEffect(() => { void fetchLiveData(); }, [fetchLiveData]);
 
+  const togglePest = useCallback((pest: PestType) => {
+    setSelectedPests((current) => current.includes(pest) ? current.filter((item) => item !== pest) : [...current, pest]);
+    setPredictions((current) => {
+      if (!(pest in current)) return current;
+      const next = { ...current };
+      delete next[pest];
+      return next;
+    });
+  }, []);
+
   const canAdvance = useMemo(() => {
-    if (chapter === 2) return selectedPest !== null;
-    if (chapter === 3) return selectedPest !== null && prediction !== null;
+    if (chapter === 2) return selectedPests.length > 0;
+    if (chapter === 3) return selectedPests.length > 0 && selectedPests.every((pest) => predictions[pest]);
     return true;
-  }, [chapter, prediction, selectedPest]);
+  }, [chapter, predictions, selectedPests]);
 
   const goNext = useCallback(() => {
     if (canAdvance) setChapter((current) => Math.min(chapters.length - 1, current + 1));
@@ -181,10 +181,8 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [goBack, goNext]);
 
-  const activePest = selectedPest ?? "mice";
-  const activeConfig = pestConfig[activePest];
-  const activePeakMonth = peakMonth(analysis.monthly[activePest]);
-  const preparationMonth = monthNames[(activePeakMonth + 11) % 12];
+  const primaryPest = selectedPests[0] ?? "mice";
+  const primaryConfig = pestConfig[primaryPest];
 
   return (
     <main className="story-shell">
@@ -235,37 +233,55 @@ export default function Home() {
 
         {chapter === 2 && (
           <div className="scene pest-picker-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Start with your concern</p><h2>Which pest are you preparing for?</h2><p className="instruction">Choose one. You can return later to explore another.</p></div>
-            <div className="pest-picker" role="group" aria-label="Choose a pest type">
+            <div className="scene-heading centered"><p className="eyebrow">Start with your concerns</p><h2>Which pests are you preparing for?</h2><p className="instruction">Select every pest that concerns you. Choose at least one.</p></div>
+            <div className="pest-picker" role="group" aria-label="Choose one or more pest types">
               {pestTypes.map((pest) => (
                 <button
                   key={pest}
-                  className={`pest-choice pest-${pest} ${selectedPest === pest ? "selected" : ""}`}
-                  onClick={() => { setSelectedPest(pest); setPrediction(null); }}
-                  aria-pressed={selectedPest === pest}
+                  className={`pest-choice pest-${pest} ${selectedPests.includes(pest) ? "selected" : ""}`}
+                  onClick={() => togglePest(pest)}
+                  aria-pressed={selectedPests.includes(pest)}
                 >
-                  <PestMark pest={pest} /><strong>{pestConfig[pest].name}</strong><small>{pestConfig[pest].description}</small><span>Code {pestConfig[pest].code}</span>
+                  <PestMark pest={pest} /><strong>{pestConfig[pest].name}</strong><small>{pestConfig[pest].description}</small><span>{selectedPests.includes(pest) ? "✓ Selected" : `Code ${pestConfig[pest].code}`}</span>
                 </button>
               ))}
             </div>
+            <p className="choice-confirmation">{selectedPests.length ? `${selectedPests.length} pest${selectedPests.length === 1 ? "" : "s"} selected. Continue when your list is complete.` : "Select at least one pest to continue."}</p>
           </div>
         )}
 
         {chapter === 3 && (
-          <div className="scene prediction-scene" style={{ "--pest-color": activeConfig.color, "--pest-soft": activeConfig.soft } as React.CSSProperties}>
-            <div className="prediction-heading"><PestMark pest={activePest} /><p className="eyebrow">Make one prediction</p><h2>When do you think inspectors most often find critical {activeConfig.singular} violations?</h2></div>
-            <div className="season-choices" role="group" aria-label="Choose a season">
-              {seasons.map((season) => (
-                <button key={season} className={prediction === season ? "selected" : ""} onClick={() => setPrediction(season)} aria-pressed={prediction === season}>
-                  <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
-                </button>
-              ))}
+          <div className="scene prediction-scene multi-prediction-scene">
+            <div className="scene-heading centered"><p className="eyebrow">Make your predictions</p><h2>When do you think each pest peaks?</h2><p className="instruction">Choose one season for every pest on your list.</p></div>
+            <div className="prediction-grid">
+              {selectedPests.map((pest) => {
+                const config = pestConfig[pest];
+                return (
+                  <article className="prediction-card" key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
+                    <div className="prediction-card-heading"><PestMark pest={pest} /><strong>{config.name}</strong></div>
+                    <div className="compact-season-choices" role="group" aria-label={`Choose a season for ${config.name}`}>
+                      {seasons.map((season) => (
+                        <button key={season} className={predictions[pest] === season ? "selected" : ""} onClick={() => setPredictions((current) => ({ ...current, [pest]: season }))} aria-pressed={predictions[pest] === season}>
+                          <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
+                        </button>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-            <p className="choice-confirmation">{prediction ? `Prediction locked: ${prediction}. Continue to see the data.` : "Choose one season to continue."}</p>
+            <p className="choice-confirmation">{canAdvance ? "Predictions locked. Continue to compare them with the data." : `${selectedPests.filter((pest) => !predictions[pest]).length} prediction${selectedPests.filter((pest) => !predictions[pest]).length === 1 ? "" : "s"} remaining.`}</p>
           </div>
         )}
 
-        {chapter === 4 && <div className="scene"><SeasonalBars pest={activePest} analysis={analysis} prediction={prediction} /></div>}
+        {chapter === 4 && (
+          <div className="scene multi-result-scene">
+            <div className="scene-heading centered"><p className="eyebrow">Your seasonal results</p><h2>Here’s how your selected pests compare.</h2><p>Each percentage is the share of unique 2025 initial inspections containing that specific critical pest violation.</p></div>
+            <div className="selected-results">
+              {selectedPests.map((pest) => <SeasonalResultCard pest={pest} analysis={analysis} prediction={predictions[pest]} key={pest} />)}
+            </div>
+          </div>
+        )}
 
         {chapter === 5 && (
           <div className="scene compare-scene">
@@ -275,19 +291,38 @@ export default function Home() {
         )}
 
         {chapter === 6 && (
-          <div className="scene monthly-scene" style={{ "--pest-color": activeConfig.color, "--pest-soft": activeConfig.soft } as React.CSSProperties}>
-            <div className="monthly-heading"><div><PestMark pest={activePest} /><p className="eyebrow">Plan before the peak</p><h2>{activeConfig.name} reach their highest monthly rate in {monthNames[activePeakMonth]}.</h2></div><p>The monthly view is more actionable than a broad season. Preparation should begin before the observed peak—not after a violation appears.</p></div>
-            <MonthlyChart pest={activePest} analysis={analysis} />
+          <div className="scene monthly-scene multi-monthly-scene">
+            <div className="scene-heading centered"><p className="eyebrow">Plan before each peak</p><h2>Turn the seasonal result into a preparation calendar.</h2><p>The monthly view shows when each selected pest reached its highest rate—and when a preventative check could begin.</p></div>
+            <div className="multi-month-grid">
+              {selectedPests.map((pest) => {
+                const config = pestConfig[pest];
+                const pestPeakMonth = peakMonth(analysis.monthly[pest]);
+                const pestPreparationMonth = monthNames[(pestPeakMonth + 11) % 12];
+                return (
+                  <article className="multi-month-card" key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
+                    <div className="multi-month-heading"><PestMark pest={pest} /><div><h3>{config.name} peak in {monthNames[pestPeakMonth]}</h3><p>Begin your check by <strong>{pestPreparationMonth}</strong>.</p></div></div>
+                    <MonthlyChart pest={pest} analysis={analysis} />
+                  </article>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {chapter === 7 && (
-          <div className="scene action-scene" style={{ "--pest-color": activeConfig.color, "--pest-soft": activeConfig.soft } as React.CSSProperties}>
+          <div className="scene action-scene" style={{ "--pest-color": primaryConfig.color, "--pest-soft": primaryConfig.soft } as React.CSSProperties}>
             <div className="action-copy">
-              <PestMark pest={activePest} />
               <p className="eyebrow">Your preparation window</p>
-              <h2>Start your {activeConfig.singular} check by {preparationMonth}.</h2>
+              <h2>Build one plan around every selected risk.</h2>
               <p>The data does not predict what will happen at your restaurant. It gives you a practical moment to review the conditions that allow pests to enter, hide, find food, or access water.</p>
+              <div className="preparation-windows" aria-label="Suggested preparation months">
+                {selectedPests.map((pest) => {
+                  const config = pestConfig[pest];
+                  const pestPeakMonth = peakMonth(analysis.monthly[pest]);
+                  const pestPreparationMonth = monthNames[(pestPeakMonth + 11) % 12];
+                  return <article key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}><PestMark pest={pest} /><span><strong>{config.name}</strong>Begin by {pestPreparationMonth}</span></article>;
+                })}
+              </div>
               <div className="owner-checklist">
                 <label><input type="checkbox" /><span><strong>Seal entry points</strong>Check cracks, holes, cabinets, doors, and exterior door sweeps.</span></label>
                 <label><input type="checkbox" /><span><strong>Remove food and shelter</strong>Use pest-proof containers, manage garbage, reduce clutter, and inspect deliveries.</span></label>
@@ -322,7 +357,7 @@ export default function Home() {
 
       {chapter > 0 && <button className="nav-button nav-back" onClick={goBack} aria-label="Previous chapter">←</button>}
       {chapter > 0 && chapter < chapters.length - 1 && <button className={`nav-button nav-next ${!canAdvance ? "disabled" : ""}`} onClick={goNext} disabled={!canAdvance} aria-label="Next chapter">→</button>}
-      {chapter > 0 && chapter < chapters.length - 1 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 2 ? "Choose a pest" : "Make a prediction"}<span>Arrow keys work, too</span></p>}
+      {chapter > 0 && chapter < chapters.length - 1 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 2 ? "Choose at least one pest" : "Complete every prediction"}<span>Arrow keys work, too</span></p>}
     </main>
   );
 }
