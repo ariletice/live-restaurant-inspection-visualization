@@ -20,9 +20,9 @@ import {
 const chapters = [
   "Opening",
   "Why timing matters",
-  "Choose a pest",
-  "Make a prediction",
-  "Seasonal result",
+  "Make one prediction",
+  "Overall result",
+  "Choose your pests",
   "Compare pest types",
   "Monthly timing",
   "Action plan",
@@ -47,37 +47,6 @@ function SeasonMark({ season }: { season: Season }) {
 
 function PestMark({ pest }: { pest: PestType }) {
   return <span className={`pest-mark pest-${pest}`} aria-hidden="true"><span className="pest-silhouette">{pestConfig[pest].mark}</span></span>;
-}
-
-function SeasonalResultCard({ pest, analysis, prediction }: { pest: PestType; analysis: PestAnalysis; prediction?: Season }) {
-  const values = analysis.seasonal[pest];
-  const peak = peakSeason(values);
-  const max = Math.max(...seasons.map((season) => values[season]));
-  const config = pestConfig[pest];
-
-  return (
-    <article className={`multi-result-card pest-${pest}`} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
-      <div className="result-card-heading">
-        <PestMark pest={pest} />
-        <div>
-          <p>{prediction ? `You predicted ${prediction}` : "Your result"}</p>
-          <h3>{config.name} peak in <em>{peak}</em>.</h3>
-        </div>
-      </div>
-      <div className="mini-season-bars" aria-label={`${config.name} critical violation rates by season`}>
-        {seasons.map((season) => {
-          const isPeak = season === peak;
-          return (
-            <div className={`mini-season-row ${isPeak ? "peak" : ""}`} key={season}>
-              <span>{season}</span>
-              <div><i style={{ width: `${(values[season] / max) * 100}%` }} /></div>
-              <strong>{formatRate(values[season])}</strong>
-            </div>
-          );
-        })}
-      </div>
-    </article>
-  );
 }
 
 function PestComparison({ analysis }: { analysis: PestAnalysis }) {
@@ -128,7 +97,7 @@ function MonthlyChart({ pest, analysis }: { pest: PestType; analysis: PestAnalys
 export default function Home() {
   const [chapter, setChapter] = useState(0);
   const [selectedPests, setSelectedPests] = useState<PestType[]>([]);
-  const [predictions, setPredictions] = useState<Partial<Record<PestType, Season>>>({});
+  const [overallPrediction, setOverallPrediction] = useState<Season | null>(null);
   const [analysis, setAnalysis] = useState<PestAnalysis>(fallbackPestAnalysis);
   const [dataStatus, setDataStatus] = useState<"loading" | "live" | "saved">("loading");
   const [lastChecked, setLastChecked] = useState("");
@@ -153,19 +122,13 @@ export default function Home() {
 
   const togglePest = useCallback((pest: PestType) => {
     setSelectedPests((current) => current.includes(pest) ? current.filter((item) => item !== pest) : [...current, pest]);
-    setPredictions((current) => {
-      if (!(pest in current)) return current;
-      const next = { ...current };
-      delete next[pest];
-      return next;
-    });
   }, []);
 
   const canAdvance = useMemo(() => {
-    if (chapter === 2) return selectedPests.length > 0;
-    if (chapter === 3) return selectedPests.length > 0 && selectedPests.every((pest) => predictions[pest]);
+    if (chapter === 2) return overallPrediction !== null;
+    if (chapter === 4) return selectedPests.length > 0;
     return true;
-  }, [chapter, predictions, selectedPests]);
+  }, [chapter, overallPrediction, selectedPests]);
 
   const goNext = useCallback(() => {
     if (canAdvance) setChapter((current) => Math.min(chapters.length - 1, current + 1));
@@ -183,6 +146,8 @@ export default function Home() {
 
   const primaryPest = selectedPests[0] ?? "mice";
   const primaryConfig = pestConfig[primaryPest];
+  const overallPeak = peakSeason(analysis.overallSeasonal);
+  const overallMax = Math.max(...seasons.map((season) => analysis.overallSeasonal[season]));
 
   return (
     <main className="story-shell">
@@ -232,8 +197,50 @@ export default function Home() {
         )}
 
         {chapter === 2 && (
+          <div className="scene prediction-scene" style={{ "--pest-color": "var(--orange)", "--pest-soft": "var(--orange-soft)" } as React.CSSProperties}>
+            <div className="prediction-heading"><p className="eyebrow">Make one prediction</p><h2>Which season has the highest rate of critical pest violations?</h2><p className="instruction">Choose the season you think had the largest share of 2025 initial inspections with at least one critical rat, mouse, roach, or fly violation.</p></div>
+            <div className="season-choices" role="group" aria-label="Choose the season with the highest overall critical pest violation rate">
+              {seasons.map((season) => (
+                <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => setOverallPrediction(season)} aria-pressed={overallPrediction === season}>
+                  <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
+                </button>
+              ))}
+            </div>
+            <p className="choice-confirmation">{overallPrediction ? `You predicted ${overallPrediction}. Continue to see the inspection data.` : "Choose one season to continue."}</p>
+          </div>
+        )}
+
+        {chapter === 3 && (
+          <div className="scene overall-result-scene" style={{ "--pest-color": "var(--orange)", "--pest-soft": "var(--orange-soft)" } as React.CSSProperties}>
+            <div className="result-copy">
+              <p className="eyebrow">The overall result</p>
+              <h2><em>{overallPeak}</em> leads overall.</h2>
+              <p>{overallPrediction ? `You predicted ${overallPrediction}. ` : ""}{formatRate(analysis.overallSeasonal[overallPeak])} of unique initial inspections in {overallPeak.toLowerCase()} contained at least one of the four critical pest violations.</p>
+              <div className="definition-note"><strong>How to read this</strong><span>Each inspection is counted once, even when inspectors recorded more than one pest violation during that visit.</span></div>
+              <div className="deeper-insight"><strong>But the overall peak hides a second story.</strong><span>Fall does not mean every pest peaks in fall. Each violation type follows its own schedule.</span></div>
+            </div>
+            <div className="overall-result-data">
+              <div className="season-bar-chart" aria-label="Overall critical pest violation rates by season">
+                {seasons.map((season) => {
+                  const isPeak = season === overallPeak;
+                  return (
+                    <div className={`season-bar-row ${isPeak ? "peak" : ""}`} key={season}>
+                      <div className="season-label"><SeasonMark season={season} /><span>{season}<small>{seasonMonths[season]}</small></span></div>
+                      <div className="season-track"><div className="season-fill" style={{ width: `${(analysis.overallSeasonal[season] / overallMax) * 100}%` }} /></div>
+                      <strong>{formatRate(analysis.overallSeasonal[season])}</strong>
+                      {isPeak && <span className="highest-label">highest</span>}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="audience-results-slot" aria-live="polite"><span>LIVE AUDIENCE POLL</span><strong>Audience responses will appear here.</strong><p>This preview will stay empty until shared voting is connected—no responses are invented.</p></div>
+            </div>
+          </div>
+        )}
+
+        {chapter === 4 && (
           <div className="scene pest-picker-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Start with your concerns</p><h2>Which pests are you preparing for?</h2><p className="instruction">Select every pest that concerns you. Choose at least one.</p></div>
+            <div className="scene-heading centered"><p className="eyebrow">Look beyond the fall peak</p><h2>Which pests should we put on your calendar?</h2><p className="instruction">Select every pest that concerns you. Choose at least one.</p></div>
             <div className="pest-picker" role="group" aria-label="Choose one or more pest types">
               {pestTypes.map((pest) => (
                 <button
@@ -247,39 +254,6 @@ export default function Home() {
               ))}
             </div>
             <p className="choice-confirmation">{selectedPests.length ? `${selectedPests.length} pest${selectedPests.length === 1 ? "" : "s"} selected. Continue when your list is complete.` : "Select at least one pest to continue."}</p>
-          </div>
-        )}
-
-        {chapter === 3 && (
-          <div className="scene prediction-scene multi-prediction-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Make your predictions</p><h2>When do you think each pest peaks?</h2><p className="instruction">Choose one season for every pest on your list.</p></div>
-            <div className="prediction-grid">
-              {selectedPests.map((pest) => {
-                const config = pestConfig[pest];
-                return (
-                  <article className="prediction-card" key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
-                    <div className="prediction-card-heading"><PestMark pest={pest} /><strong>{config.name}</strong></div>
-                    <div className="compact-season-choices" role="group" aria-label={`Choose a season for ${config.name}`}>
-                      {seasons.map((season) => (
-                        <button key={season} className={predictions[pest] === season ? "selected" : ""} onClick={() => setPredictions((current) => ({ ...current, [pest]: season }))} aria-pressed={predictions[pest] === season}>
-                          <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
-                        </button>
-                      ))}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-            <p className="choice-confirmation">{canAdvance ? "Predictions locked. Continue to compare them with the data." : `${selectedPests.filter((pest) => !predictions[pest]).length} prediction${selectedPests.filter((pest) => !predictions[pest]).length === 1 ? "" : "s"} remaining.`}</p>
-          </div>
-        )}
-
-        {chapter === 4 && (
-          <div className="scene multi-result-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Your seasonal results</p><h2>Here’s how your selected pests compare.</h2><p>Each percentage is the share of unique 2025 initial inspections containing that specific critical pest violation.</p></div>
-            <div className="selected-results">
-              {selectedPests.map((pest) => <SeasonalResultCard pest={pest} analysis={analysis} prediction={predictions[pest]} key={pest} />)}
-            </div>
           </div>
         )}
 
@@ -357,7 +331,7 @@ export default function Home() {
 
       {chapter > 0 && <button className="nav-button nav-back" onClick={goBack} aria-label="Previous chapter">←</button>}
       {chapter > 0 && chapter < chapters.length - 1 && <button className={`nav-button nav-next ${!canAdvance ? "disabled" : ""}`} onClick={goNext} disabled={!canAdvance} aria-label="Next chapter">→</button>}
-      {chapter > 0 && chapter < chapters.length - 1 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 2 ? "Choose at least one pest" : "Complete every prediction"}<span>Arrow keys work, too</span></p>}
+      {chapter > 0 && chapter < chapters.length - 1 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 2 ? "Make one prediction" : "Choose at least one pest"}<span>Arrow keys work, too</span></p>}
     </main>
   );
 }
