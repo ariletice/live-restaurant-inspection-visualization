@@ -25,6 +25,7 @@ const chapters = [
   "Seasonal result",
   "Compare pest types",
   "Monthly timing",
+  "Action plan",
   "Method",
 ];
 
@@ -183,6 +184,7 @@ export default function Home() {
   const activePest = selectedPest ?? "mice";
   const activeConfig = pestConfig[activePest];
   const activePeakMonth = peakMonth(analysis.monthly[activePest]);
+  const preparationMonth = monthNames[(activePeakMonth + 11) % 12];
 
   return (
     <main className="story-shell">
@@ -276,8 +278,39 @@ export default function Home() {
         )}
 
         {chapter === 7 && (
+          <div className="scene action-scene" style={{ "--pest-color": activeConfig.color, "--pest-soft": activeConfig.soft } as React.CSSProperties}>
+            <div className="action-copy">
+              <PestMark pest={activePest} />
+              <p className="eyebrow">Your preparation window</p>
+              <h2>Start your {activeConfig.singular} check by {preparationMonth}.</h2>
+              <p>The data does not predict what will happen at your restaurant. It gives you a practical moment to review the conditions that allow pests to enter, hide, find food, or access water.</p>
+              <div className="owner-checklist">
+                <label><input type="checkbox" /><span><strong>Seal entry points</strong>Check cracks, holes, cabinets, doors, and exterior door sweeps.</span></label>
+                <label><input type="checkbox" /><span><strong>Remove food and shelter</strong>Use pest-proof containers, manage garbage, reduce clutter, and inspect deliveries.</span></label>
+                <label><input type="checkbox" /><span><strong>Clean hidden areas</strong>Remove grease and food particles from equipment, floors, and range hoods.</span></label>
+                <label><input type="checkbox" /><span><strong>Review your monitoring plan</strong>Document problem areas and discuss findings with a licensed pest professional.</span></label>
+              </div>
+              <small className="guidance-source">Checklist adapted from NYC Health pest-proofing guidance and integrated pest management principles.</small>
+            </div>
+
+            <aside className="referral-panel" id="referrals">
+              <span className="panel-label">REFERRAL-READY MVP</span>
+              <h3>Need professional support?</h3>
+              <p>NYC advises restaurants to work with a pest-management professional who is licensed to serve food establishments.</p>
+              <a className="official-link" href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">Find official NYC pest resources ↗</a>
+              <div className="partner-placeholder">
+                <strong>Verified provider links will live here.</strong>
+                <p>Before activation, each provider should be licensed, serve NYC restaurants, address the selected pest, and agree to transparent referral terms.</p>
+                <button disabled>Restaurant pest partners coming soon</button>
+              </div>
+              <small>Future referral or sponsored links must be labeled clearly. Provider inclusion will not represent NYC Health Department endorsement or guarantee an inspection result.</small>
+            </aside>
+          </div>
+        )}
+
+        {chapter === 8 && (
           <div className="scene method-scene">
-            <div className="method-copy"><p className="eyebrow">Method and limits</p><h2>Inspection detections are a signal—not a pest forecast.</h2><p>This analysis groups unique NYC restaurant initial inspections from 2025 by month and season. Each rate is the percentage of those inspections containing the specified critical pest violation.</p><ul><li>Rows represent inspection results or violations, while the rates use unique inspections.</li><li>The results show when inspectors recorded violations, not the total pest population in NYC.</li><li>Seasonal association does not prove that weather or season caused a violation.</li><li>A specific restaurant’s current inspection record matters more than a citywide pattern.</li></ul><a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data" target="_blank" rel="noreferrer">View the NYC Open Data source ↗</a></div>
+            <div className="method-copy"><p className="eyebrow">Method and limits</p><h2>Inspection detections are a signal—not a pest forecast.</h2><p>This analysis groups unique NYC restaurant initial inspections from 2025 by month and season. Each rate is the percentage of those inspections containing the specified critical pest violation.</p><ul><li>Rows represent inspection results or violations, while the rates use unique inspections.</li><li>The results show when inspectors recorded violations, not the total pest population in NYC.</li><li>Seasonal association does not prove that weather or season caused a violation.</li><li>A specific restaurant’s current inspection record matters more than a citywide pattern.</li></ul><div className="method-links"><a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data" target="_blank" rel="noreferrer">NYC inspection data ↗</a><a href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">NYC restaurant pest guidance ↗</a><a href="https://www.epa.gov/ipm/introduction-integrated-pest-management" target="_blank" rel="noreferrer">EPA integrated pest management ↗</a></div></div>
             <div className="data-receipt"><span>DATA RECEIPT</span><dl><div><dt>Year</dt><dd>2025</dd></div><div><dt>Unique initial inspections</dt><dd>{analysis.inspectionCount.toLocaleString()}</dd></div><div><dt>Pest codes</dt><dd>04K–04N</dd></div><div><dt>Connection</dt><dd>{dataStatus === "live" ? "Live" : "Saved"}</dd></div><div><dt>Last checked</dt><dd>{lastChecked || "Checking now"}</dd></div></dl><button onClick={() => void fetchLiveData()} disabled={dataStatus === "loading"}>{dataStatus === "loading" ? "Refreshing…" : "Re-run the live fetch"}</button></div>
           </div>
         )}
