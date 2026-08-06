@@ -114,9 +114,16 @@ export default function Home() {
   const fetchLiveData = useCallback(async () => {
     setDataStatus("loading");
     try {
-      const response = await fetch(buildPestDataUrl());
-      if (!response.ok) throw new Error("NYC Open Data did not respond");
-      const rows: PestApiRow[] = await response.json();
+      const pageSize = 50000;
+      const rows: PestApiRow[] = [];
+      for (let offset = 0; offset < 250000; offset += pageSize) {
+        const response = await fetch(buildPestDataUrl(offset, pageSize));
+        if (!response.ok) throw new Error("NYC Open Data did not respond");
+        const page = (await response.json()) as PestApiRow[];
+        rows.push(...page);
+        if (page.length < pageSize) break;
+      }
+      if (rows.length >= 250000) throw new Error("NYC Open Data exceeded the safe page limit");
       setAnalysis(calculatePestAnalysis(rows));
       setDataStatus("live");
       setLastChecked(new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date()));

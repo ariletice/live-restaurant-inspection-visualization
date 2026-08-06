@@ -172,11 +172,13 @@ export function peakMonth(values: number[]): number {
   return values.reduce((peak, value, index) => (value > values[peak] ? index : peak), 0);
 }
 
-export function buildPestDataUrl(): string {
+export function buildPestDataUrl(offset = 0, limit = 50000): string {
   const params = new URLSearchParams({
     "$select": "camis,inspection_date,inspection_type,violation_code,critical_flag",
     "$where": "inspection_date between '2025-01-01T00:00:00.000' and '2025-12-31T23:59:59.999' AND inspection_type like '%Initial Inspection%'",
-    "$limit": "50000",
+    "$order": "camis,inspection_date,inspection_type,violation_code",
+    "$limit": String(limit),
+    "$offset": String(offset),
   });
   return `https://data.cityofnewyork.us/resource/43nn-pn8j.json?${params.toString()}`;
 }
