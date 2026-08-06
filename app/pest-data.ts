@@ -11,6 +11,7 @@ export type PestApiRow = {
 
 export type PestAnalysis = {
   inspectionCount: number;
+  overallSeasonal: Record<Season, number>;
   seasonal: Record<PestType, Record<Season, number>>;
   monthly: Record<PestType, number[]>;
 };
@@ -69,6 +70,7 @@ export const pestTypes = Object.keys(pestConfig) as PestType[];
 
 export const fallbackPestAnalysis: PestAnalysis = {
   inspectionCount: 13158,
+  overallSeasonal: { Winter: 28.7487, Spring: 28.3992, Summer: 32.5624, Fall: 35.8669 },
   seasonal: {
     rats: { Winter: 3.45, Spring: 3.98, Summer: 2.68, Fall: 2.95 },
     mice: { Winter: 17.89, Spring: 18.42, Summer: 14.46, Fall: 16.66 },
@@ -99,6 +101,7 @@ function createSeasonSets(): Record<Season, Set<string>> {
 export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
   const monthlyDenominators = Array.from({ length: 12 }, () => new Set<string>());
   const seasonalDenominators = createSeasonSets();
+  const overallSeasonalNumerators = createSeasonSets();
   const monthlyNumerators = Object.fromEntries(
     pestTypes.map((pest) => [pest, Array.from({ length: 12 }, () => new Set<string>())]),
   ) as Record<PestType, Set<string>[]>;
@@ -120,6 +123,7 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
     if (row.critical_flag !== "Critical" || !row.violation_code) continue;
     const pest = codeToPest.get(row.violation_code);
     if (!pest) continue;
+    overallSeasonalNumerators[season].add(inspectionKey);
     monthlyNumerators[pest][monthIndex].add(inspectionKey);
     seasonalNumerators[pest][season].add(inspectionKey);
   }
@@ -139,6 +143,15 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
     ]),
   ) as PestAnalysis["seasonal"];
 
+  const overallSeasonal = Object.fromEntries(
+    seasons.map((season) => [
+      season,
+      seasonalDenominators[season].size
+        ? (overallSeasonalNumerators[season].size / seasonalDenominators[season].size) * 100
+        : 0,
+    ]),
+  ) as PestAnalysis["overallSeasonal"];
+
   const monthly = Object.fromEntries(
     pestTypes.map((pest) => [
       pest,
@@ -148,7 +161,7 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
     ]),
   ) as PestAnalysis["monthly"];
 
-  return { inspectionCount, seasonal, monthly };
+  return { inspectionCount, overallSeasonal, seasonal, monthly };
 }
 
 export function peakSeason(values: Record<Season, number>): Season {
