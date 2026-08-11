@@ -226,7 +226,7 @@ export default function Home() {
           <div className="scene cover-scene">
             <div className="cover-copy">
               <p className="eyebrow">What <span className="inspection-count-highlight">{analysis.inspectionCount.toLocaleString()}</span> NYC initial inspections revealed</p>
-              <h1>Is there one pest season for every NYC restaurant?</h1>
+              <h1>Is there one <span className="text-emphasis emphasis-orange">pest season</span> for every NYC restaurant?</h1>
               <p className="dek">Every NYC restaurant is scheduled for <mark className="inspection-fact-highlight">at least one unannounced health inspection each year</mark>. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
               <button className="primary-button" onClick={goNext}>Explore the pattern <span>→</span></button>
             </div>
@@ -245,7 +245,7 @@ export default function Home() {
           <div className="scene context-scene">
             <div className="context-copy">
               <p className="eyebrow">Why timing matters</p>
-              <h2>Prevention starts before an inspector arrives.</h2>
+              <h2>Prevention starts <span className="text-emphasis emphasis-green">before</span> an inspector arrives.</h2>
               <p>Critical pest violations can affect a restaurant’s grade, reputation, and ability to operate safely. Understanding when inspectors most often record them can help restaurant teams decide when to strengthen prevention—without predicting any individual inspection.</p>
             </div>
             <div className="split-pattern">
@@ -257,7 +257,7 @@ export default function Home() {
 
         {chapter === 2 && (
           <div className="scene prediction-scene" style={{ "--pest-color": "var(--orange)", "--pest-soft": "var(--orange-soft)" } as React.CSSProperties}>
-            <div className="prediction-heading"><p className="eyebrow">Make one prediction</p><h2>Which season has the highest rate of critical pest violations?</h2><p className="instruction">Choose the season you think had the largest share of 2025 initial inspections with at least one critical rat, mouse, roach, or fly violation.</p></div>
+            <div className="prediction-heading"><p className="eyebrow">Make one prediction</p><h2>Which season has the <span className="text-emphasis emphasis-orange">highest rate</span> of critical pest violations?</h2><p className="instruction">Choose the season you think had the largest share of 2025 initial inspections with at least one critical rat, mouse, roach, or fly violation.</p></div>
             <div className="season-choices" role="group" aria-label="Choose the season with the highest overall critical pest violation rate">
               {seasons.map((season) => (
                 <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => void submitAudienceVote(season)} aria-pressed={overallPrediction === season}>
@@ -338,14 +338,14 @@ export default function Home() {
 
         {chapter === 5 && (
           <div className="scene compare-scene">
-            <div className="scene-heading"><p className="eyebrow">See the full pattern</p><h2>Different pests need different calendars.</h2><p>Rodent violations are strongest earlier in the year. Roaches and flies rise later—so one generic “pest season” can hide the preparation window that matters.</p></div>
+            <div className="scene-heading"><p className="eyebrow">See the full pattern</p><h2>Different pests need <span className="text-emphasis emphasis-blue">different calendars.</span></h2><p>Rodent violations are strongest earlier in the year. Roaches and flies rise later—so one generic “pest season” can hide the preparation window that matters.</p></div>
             <PestComparison analysis={analysis} />
           </div>
         )}
 
         {chapter === 6 && (
           <div className="scene monthly-scene multi-monthly-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Plan before each peak</p><h2>Turn the seasonal result into a preparation calendar.</h2><p>The monthly view shows when each selected pest reached its highest rate—and when a preventative check could begin.</p></div>
+            <div className="scene-heading centered"><p className="eyebrow">Plan before each peak</p><h2>Turn the seasonal result into a <span className="text-emphasis emphasis-green">preparation calendar.</span></h2><p>The monthly view shows when each selected pest reached its highest rate—and when a preventative check could begin.</p></div>
             <div className="multi-month-grid">
               {selectedPests.map((pest) => {
                 const config = pestConfig[pest];
@@ -366,7 +366,7 @@ export default function Home() {
           <div className="scene action-scene" style={{ "--pest-color": primaryConfig.color, "--pest-soft": primaryConfig.soft } as React.CSSProperties}>
             <div className="action-copy">
               <p className="eyebrow">Your preparation window</p>
-              <h2>Build one plan around every selected risk.</h2>
+              <h2>Build one plan around <span className="text-emphasis emphasis-orange">every selected risk.</span></h2>
               <p>The data does not predict what will happen at your restaurant. It gives you a practical moment to review the conditions that allow pests to enter, hide, find food, or access water.</p>
               <div className="preparation-windows" aria-label="Suggested preparation months">
                 {selectedPests.map((pest) => {
@@ -402,7 +402,7 @@ export default function Home() {
 
         {chapter === 8 && (
           <div className="scene method-scene">
-            <div className="method-copy"><p className="eyebrow">Method and limits</p><h2>Inspection detections are a signal—not a pest forecast.</h2><p>This analysis groups unique NYC restaurant initial inspections from 2025 by month and season. Each rate is the percentage of those inspections containing the specified critical pest violation.</p><ul><li>Rows represent inspection results or violations, while the rates use unique inspections.</li><li>The results show when inspectors recorded violations, not the total pest population in NYC.</li><li>Seasonal association does not prove that weather or season caused a violation.</li><li>A specific restaurant’s current inspection record matters more than a citywide pattern.</li></ul><div className="method-links"><a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data" target="_blank" rel="noreferrer">NYC inspection data ↗</a><a href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">NYC restaurant pest guidance ↗</a><a href="https://www.epa.gov/ipm/introduction-integrated-pest-management" target="_blank" rel="noreferrer">EPA integrated pest management ↗</a></div><div className="mvp-cta"><span className="panel-label">YOUR RESTAURANT, NEXT</span><h3>See what NYC inspection data says about your restaurant.</h3><p>Search your restaurant to view its pest-related inspection history and preventative next steps.</p><Link href="/restaurant">Find My Restaurant →</Link></div></div>
+            <div className="method-copy"><p className="eyebrow">Method and limits</p><h2>Inspection detections are a <span className="text-emphasis emphasis-blue">signal—not a pest forecast.</span></h2><p>This analysis groups unique NYC restaurant initial inspections from 2025 by month and season. Each rate is the percentage of those inspections containing the specified critical pest violation.</p><ul><li>Rows represent inspection results or violations, while the rates use unique inspections.</li><li>The results show when inspectors recorded violations, not the total pest population in NYC.</li><li>Seasonal association does not prove that weather or season caused a violation.</li><li>A specific restaurant’s current inspection record matters more than a citywide pattern.</li></ul><div className="method-links"><a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data" target="_blank" rel="noreferrer">NYC inspection data ↗</a><a href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">NYC restaurant pest guidance ↗</a><a href="https://www.epa.gov/ipm/introduction-integrated-pest-management" target="_blank" rel="noreferrer">EPA integrated pest management ↗</a></div><div className="mvp-cta"><span className="panel-label">YOUR RESTAURANT, NEXT</span><h3>See what NYC inspection data says about <span className="text-emphasis emphasis-green">your restaurant.</span></h3><p>Search your restaurant to view its pest-related inspection history and preventative next steps.</p><Link href="/restaurant">Find My Restaurant →</Link></div></div>
             <div className="data-receipt"><span>DATA RECEIPT</span><dl><div><dt>Year</dt><dd>2025</dd></div><div><dt>Unique initial inspections</dt><dd>{analysis.inspectionCount.toLocaleString()}</dd></div><div><dt>Pest codes</dt><dd>04K–04N</dd></div><div><dt>Connection</dt><dd>{dataStatus === "live" ? "Live" : "Saved"}</dd></div><div><dt>Last checked</dt><dd>{lastChecked || "Checking now"}</dd></div></dl><button onClick={() => void fetchLiveData()} disabled={dataStatus === "loading"}>{dataStatus === "loading" ? "Refreshing…" : "Re-run the live fetch"}</button></div>
           </div>
         )}
