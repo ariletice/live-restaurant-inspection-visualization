@@ -1,37 +1,37 @@
-import { count, sql } from "drizzle-orm";
-import { ensureDatabaseSchema, getDb } from "../../../db";
-import { audienceVotes } from "../../../db/schema";
+import { getStore } from "@netlify/blobs";
 import { seasons, type Season } from "../../pest-data";
 
 type PollCounts = Record<Season, number>;
+
+const storeName = "nyc-pest-season-poll";
 
 function emptyCounts(): PollCounts {
   return { Winter: 0, Spring: 0, Summer: 0, Fall: 0 };
 }
 
-function pollError(error: unknown) {
-  const message = error instanceof Error ? error.message : "Audience voting is temporarily unavailable.";
-  const cause = error instanceof Error && error.cause instanceof Error ? error.cause.message : "";
-  return `${message}\n${cause}`.includes("no such table")
-    ? "Audience voting is not initialized yet. Apply the saved database migration before collecting responses."
-    : message;
+async function readPoll() {
+  const store = getStore(storeName);
+  const { blobs } = await store.list({ prefix: "votes/" });
+  const votes = await Promise.all(
+    blobs.map((blob) =>
+      store.get(blob.key, { consistency: "strong", type: "json" }) as Promise<{ season?: string } | null>,
+    ),
+  );
+  const counts = emptyCounts();
+  for (const vote of votes) {
+    if (vote?.season && seasons.includes(vote.season as Season)) {
+      counts[vote.season as Season] += 1;
+    }
+  }
+  return { counts, total: votes.length };
 }
 
 export async function GET() {
   try {
-    await ensureDatabaseSchema();
-    const db = getDb();
-    const rows = await db
-      .select({ season: audienceVotes.season, votes: count() })
-      .from(audienceVotes)
-      .groupBy(audienceVotes.season);
-    const counts = emptyCounts();
-    for (const row of rows) {
-      if (seasons.includes(row.season as Season)) counts[row.season as Season] = row.votes;
-    }
-    return Response.json({ counts, total: Object.values(counts).reduce((sum, votes) => sum + votes, 0) });
+    return Response.json(await readPoll());
   } catch (error) {
-    return Response.json({ error: pollError(error) }, { status: 503 });
+    const message = error instanceof Error ? error.message : "Audience voting is temporarily unavailable.";
+    return Response.json({ error: message }, { status: 503 });
   }
 }
 
@@ -45,18 +45,11 @@ export async function POST(request: Request) {
       return Response.json({ error: "A valid anonymous voter ID is required." }, { status: 400 });
     }
 
-    await ensureDatabaseSchema();
-    const db = getDb();
-    await db
-      .insert(audienceVotes)
-      .values({ voterId: payload.voterId, season: payload.season })
-      .onConflictDoUpdate({
-        target: audienceVotes.voterId,
-        set: { season: payload.season, updatedAt: sql`CURRENT_TIMESTAMP` },
-      });
-
-    return GET();
+    const store = getStore(storeName);
+    await store.setJSON(`votes/${payload.voterId}`, { season: payload.season });
+    return Response.json(await readPoll());
   } catch (error) {
-    return Response.json({ error: pollError(error) }, { status: 503 });
+    const message = error instanceof Error ? error.message : "Audience voting is temporarily unavailable.";
+    return Response.json({ error: message }, { status: 503 });
   }
 }
