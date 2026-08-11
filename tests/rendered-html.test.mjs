@@ -28,23 +28,36 @@ test("serves the connected restaurant-owner MVP", async () => {
   assert.match(html, /What does NYC inspection data say about your restaurant\?/i);
   assert.match(html, /Find your restaurant/i);
   assert.match(html, /Live NYC records/i);
+  assert.doesNotMatch(html, /Understand the record/i);
+});
+
+test("serves inspection history on a separate CAMIS results page", async () => {
+  const response = await render("/restaurant/40732665");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Understand the record/i);
+  assert.match(html, /Loading inspection history/i);
+  assert.match(html, /Search another restaurant/i);
 });
 
 test("connects the story and MVP with the required customer states", async () => {
-  const [story, restaurant, searchRoute, historyRoute] = await Promise.all([
+  const [story, searchPage, resultsPage, searchRoute, historyRoute] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/restaurant/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/restaurants/search/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/restaurants/[camis]/route.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(story, /href="\/restaurant"/);
   assert.match(story, /Find My Restaurant/);
-  assert.match(restaurant, /Loading .*inspection history/);
-  assert.match(restaurant, /No pest-related violations were found/);
-  assert.match(restaurant, /Try again/);
-  assert.match(restaurant, /Official NYC record/);
-  assert.match(restaurant, /Summary/);
+  assert.match(searchPage, /router\.push\(`\/restaurant\/\$\{restaurant\.camis\}`\)/);
+  assert.doesNotMatch(searchPage, /No pest-related violations were found/);
+  assert.match(resultsPage, /Loading inspection history/);
+  assert.match(resultsPage, /No pest-related violations were found/);
+  assert.match(resultsPage, /Try again/);
+  assert.match(resultsPage, /Official NYC record/);
+  assert.match(resultsPage, /Summary/);
   assert.match(searchRoute, /camis,dba,boro,building,street,zipcode/);
   assert.match(historyRoute, /\["04K", "04L", "04M", "04N"\]/);
   assert.match(historyRoute, /camis='\$\{camis\}'/);
