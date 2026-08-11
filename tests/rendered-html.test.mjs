@@ -61,6 +61,8 @@ test("connects the story and MVP with the required customer states", async () =>
   assert.match(resultsPage, /Official NYC record/);
   assert.match(resultsPage, /Summary/);
   assert.match(searchRoute, /camis,dba,boro,building,street,zipcode/);
+  assert.match(searchRoute, /\["dba", "building", "street", "boro", "zipcode"\]/);
+  assert.match(searchRoute, /\.join\(" AND "\)/);
   assert.match(historyRoute, /\["04K", "04L", "04M", "04N"\]/);
   assert.match(historyRoute, /camis='\$\{camis\}'/);
 });

@@ -32,7 +32,7 @@ export default function RestaurantPage() {
     const cleaned = query.trim();
     if (cleaned.length < 2) {
       setSearchState("error");
-      setSearchMessage("Enter at least two characters from the restaurant name or street.");
+      setSearchMessage("Enter at least two characters from the restaurant name or address.");
       return;
     }
     setSearchState("loading");
@@ -44,7 +44,7 @@ export default function RestaurantPage() {
       setResults(payload.restaurants);
       setSearchState("success");
       if (!payload.restaurants.length) {
-        setSearchMessage("We couldn't find a restaurant matching that search. Try its street, borough, or another spelling.");
+        setSearchMessage("We couldn't find a restaurant matching that search. Try its full address, borough, or another spelling.");
       }
     } catch (error) {
       setResults([]);
@@ -83,13 +83,13 @@ export default function RestaurantPage() {
           <div><p className="eyebrow">Find the correct location</p><h2 id="restaurant-search-heading">Find <span className="text-emphasis emphasis-orange">your restaurant</span></h2></div>
         </div>
         <form onSubmit={search}>
-          <label htmlFor="restaurant-query">Restaurant name or street</label>
+          <label htmlFor="restaurant-query">Restaurant name or address</label>
           <div className="search-controls">
             <input
               id="restaurant-query"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Try Katz's or East Houston Street"
+              placeholder="Try Burger Bhai or 1017 Cortelyou Road"
               autoComplete="off"
             />
             <button type="submit" disabled={searchState === "loading"}>
