@@ -182,7 +182,7 @@ export default function RestaurantPage() {
               <div className="pest-history">
                 <div className="interpretation-key">
                   <span><i className="official-dot" />Official NYC record</span>
-                  <span><i className="product-dot" />Plain-language product guidance</span>
+                  <span><i className="product-dot" />Summary</span>
                 </div>
 
                 {!pestInspections.length ? (

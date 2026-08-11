@@ -44,7 +44,7 @@ test("connects the story and MVP with the required customer states", async () =>
   assert.match(restaurant, /No pest-related violations were found/);
   assert.match(restaurant, /Try again/);
   assert.match(restaurant, /Official NYC record/);
-  assert.match(restaurant, /Plain-language product guidance/);
+  assert.match(restaurant, /Summary/);
   assert.match(searchRoute, /camis,dba,boro,building,street,zipcode/);
   assert.match(historyRoute, /\["04K", "04L", "04M", "04N"\]/);
   assert.match(historyRoute, /camis='\$\{camis\}'/);
