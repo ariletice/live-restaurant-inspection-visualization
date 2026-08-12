@@ -15,36 +15,19 @@ function escapeSoql(value: string) {
   return value.replaceAll("'", "''");
 }
 
-function searchCondition(query: string) {
-  const tokens = query
-    .toUpperCase()
-    .replace(/[,.#]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(escapeSoql);
-
-  return tokens
-    .map((token) => {
-      const matches = ["dba", "building", "street", "boro", "zipcode"]
-        .map((field) => `upper(${field}) like '%${token}%'`)
-        .join(" OR ");
-      return `(${matches})`;
-    })
-    .join(" AND ");
-}
-
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("query")?.trim() ?? "";
-  if (query.length < 2) {
-    return Response.json({ error: "Enter at least two characters." }, { status: 400 });
+  if (query.length < 3) {
+    return Response.json({ error: "Enter at least three characters." }, { status: 400 });
   }
 
+  const term = escapeSoql(query.toUpperCase());
   const params = new URLSearchParams({
     "$select": "camis,dba,boro,building,street,zipcode",
-    "$where": searchCondition(query),
+    "$where": `upper(dba) like '%${term}%'`,
     "$group": "camis,dba,boro,building,street,zipcode",
     "$order": "dba,boro,street",
-    "$limit": "12",
+    "$limit": "10",
   });
 
   try {

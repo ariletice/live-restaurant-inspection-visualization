@@ -73,8 +73,34 @@ test("connects the story and MVP with the required customer states", async () =>
   assert.match(resultsPage, /Official NYC record/);
   assert.match(resultsPage, /Summary/);
   assert.match(searchRoute, /camis,dba,boro,building,street,zipcode/);
-  assert.match(searchRoute, /\["dba", "building", "street", "boro", "zipcode"\]/);
-  assert.match(searchRoute, /\.join\(" AND "\)/);
+  assert.match(searchRoute, /upper\(dba\) like/);
+  assert.match(searchRoute, /"\$limit": "10"/);
+  assert.doesNotMatch(searchRoute, /upper\(street\) like/);
   assert.match(historyRoute, /\["04K", "04L", "04M", "04N"\]/);
   assert.match(historyRoute, /camis='\$\{camis\}'/);
+});
+
+test("requires three characters before searching restaurant names", async () => {
+  const response = await render("/api/restaurants/search?query=ab");
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: "Enter at least three characters." });
+});
+
+test("implements the restaurant autocomplete interaction contract", async () => {
+  const searchPage = await readFile(new URL("../app/restaurant/page.tsx", import.meta.url), "utf8");
+  assert.match(searchPage, /setTimeout\(\(\) =>/);
+  assert.match(searchPage, /}, 400\)/);
+  assert.match(searchPage, /AbortController/);
+  assert.match(searchPage, /role="combobox"/);
+  assert.match(searchPage, /role="listbox"/);
+  assert.match(searchPage, /role="option"/);
+  assert.match(searchPage, /aria-activedescendant/);
+  assert.match(searchPage, /ArrowDown/);
+  assert.match(searchPage, /ArrowUp/);
+  assert.match(searchPage, /event\.key === "Enter"/);
+  assert.match(searchPage, /event\.key === "Escape"/);
+  assert.match(searchPage, /event\.key === "Tab"/);
+  assert.match(searchPage, /router\.push\(`\/restaurant\/\$\{restaurant\.camis\}`\)/);
+  assert.match(searchPage, /We couldn&apos;t search NYC records right now/);
+  assert.match(searchPage, />Retry</);
 });
