@@ -518,7 +518,7 @@ export default function Home() {
               <p className="eyebrow">Why this matters</p>
               <h2>Pest findings and inspection scores move together.</h2>
               <p>NYC inspection scores affect grade eligibility and how frequently a restaurant may be inspected. A score from 0–13 is in the A-grade range; 14 or more falls outside it.</p>
-              <div className="impact-stat"><strong>{outsideARiskRatio.toFixed(1)}×</strong><span>as likely to score outside the A-grade range when an initial inspection included a critical pest violation.</span></div>
+              <div className="impact-stat"><p>Inspections with critical pest violations were <strong>{outsideARiskRatio.toFixed(1)}× as likely</strong> to receive a score outside the A-grade range as inspections without them.</p></div>
               <p className="impact-caution">This is an association, not proof that pests alone caused the final score. Pest violations contribute points to an inspection score.</p>
             </div>
 
