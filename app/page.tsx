@@ -37,6 +37,20 @@ const seasonMonths: Record<Season, string> = {
   Fall: "Sep–Nov",
 };
 
+const seasonAnswerLetters: Record<Season, string> = {
+  Winter: "A",
+  Spring: "B",
+  Summer: "C",
+  Fall: "D",
+};
+
+const fullSeasonMonths: Record<Season, string> = {
+  Winter: "December–February",
+  Spring: "March–May",
+  Summer: "June–August",
+  Fall: "September–November",
+};
+
 type AudiencePollResults = { counts: Record<Season, number>; total: number };
 
 const emptyAudiencePoll: AudiencePollResults = {
@@ -257,15 +271,17 @@ export default function Home() {
 
         {chapter === 2 && (
           <div className="scene prediction-scene" style={{ "--pest-color": "var(--orange)", "--pest-soft": "var(--orange-soft)" } as React.CSSProperties}>
-            <div className="prediction-heading"><p className="eyebrow">Make one prediction</p><h2>Which season has the <span className="text-emphasis emphasis-orange">highest rate</span> of critical pest violations?</h2><p className="instruction">Choose the season you think had the largest share of 2025 initial inspections with at least one critical rat, mouse, roach, or fly violation.</p></div>
+            <div className="prediction-heading"><p className="eyebrow">Make your prediction</p><h2>Which season do you believe has the highest rate of critical pest violations in NYC restaurants?</h2><p className="instruction">Select one answer to see how your prediction compares with 2025 inspection data and other visitors’ responses.</p></div>
             <div className="season-choices" role="group" aria-label="Choose the season with the highest overall critical pest violation rate">
               {seasons.map((season) => (
-                <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => void submitAudienceVote(season)} aria-pressed={overallPrediction === season}>
-                  <SeasonMark season={season} /><strong>{season}</strong><small>{seasonMonths[season]}</small>
+                <button key={season} className={overallPrediction === season ? "selected" : ""} onClick={() => void submitAudienceVote(season)} aria-pressed={overallPrediction === season} aria-label={`${seasonAnswerLetters[season]}. ${season}, ${fullSeasonMonths[season]}`}>
+                  <span className="answer-letter" aria-hidden="true">{seasonAnswerLetters[season]}</span>
+                  <span className="season-choice-icon"><SeasonMark season={season} /></span>
+                  <strong>{season}</strong><small>{fullSeasonMonths[season]}</small>
                 </button>
               ))}
             </div>
-            <p className="choice-confirmation">{!overallPrediction ? "Choose one season to continue." : pollStatus === "saving" ? `Saving your ${overallPrediction} prediction…` : pollStatus === "connected" ? `Your ${overallPrediction} prediction is in. Continue to compare it with the inspection data.` : `You predicted ${overallPrediction}. Community voting is not connected in this preview, but you can continue.`}</p>
+            <p className="choice-confirmation">{!overallPrediction ? "Select one answer to continue." : pollStatus === "saving" ? `Saving your ${seasonAnswerLetters[overallPrediction]}. ${overallPrediction} prediction…` : `You chose ${seasonAnswerLetters[overallPrediction]}. ${overallPrediction}. Continue to reveal the result.`}</p>
           </div>
         )}
 

@@ -21,6 +21,18 @@ test("keeps the seasonal data story as the homepage", async () => {
   assert.match(html, /NYC Pest Prep/i);
 });
 
+test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
+  const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(story, /Which season do you believe has the highest rate of critical pest violations in NYC restaurants\?/);
+  assert.match(story, /Winter: "A"/);
+  assert.match(story, /Spring: "B"/);
+  assert.match(story, /Summer: "C"/);
+  assert.match(story, /Fall: "D"/);
+  assert.match(story, /December–February/);
+  assert.match(story, /You chose \$\{seasonAnswerLetters\[overallPrediction\]\}\. \$\{overallPrediction\}\. Continue to reveal the result\./);
+  assert.match(story, /aria-label=\{`\$\{seasonAnswerLetters\[season\]\}\. \$\{season\}, \$\{fullSeasonMonths\[season\]\}`\}/);
+});
+
 test("serves the connected restaurant-owner MVP", async () => {
   const response = await render("/restaurant");
   assert.equal(response.status, 200);
