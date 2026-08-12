@@ -54,8 +54,7 @@ test("condenses the post-quiz story into a historical pest calendar and MVP brid
   assert.match(story, /What pest should we put on your calendar\?/);
   assert.match(story, /HISTORICAL INSPECTION PATTERN — NOT A FORECAST/);
   assert.match(story, /recorded at their highest inspection rate during/);
-  assert.match(story, /Seasonal patterns show when certain pest violations have historically appeared more often/);
-  assert.match(story, /Nearby comparison is the next planned layer/);
+  assert.match(story, /Seasonal patterns show when pest violations appeared more often/);
   assert.match(story, /Check My Inspection Record →/);
 });
 

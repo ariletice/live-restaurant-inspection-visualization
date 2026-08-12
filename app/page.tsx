@@ -25,6 +25,7 @@ const chapters = [
   "Make one prediction",
   "Overall result",
   "Your pest calendar",
+  "Why this matters",
 ];
 
 const seasonMonths: Record<Season, string> = {
@@ -265,8 +266,9 @@ export default function Home() {
   const canAdvance = useMemo(() => {
     if (chapter === 2) return draftAudienceRole !== null;
     if (chapter === 3) return overallPrediction !== null;
+    if (chapter === 5) return selectedPest !== null;
     return true;
-  }, [chapter, draftAudienceRole, overallPrediction]);
+  }, [chapter, draftAudienceRole, overallPrediction, selectedPest]);
 
   const goNext = useCallback(() => {
     if (!canAdvance) return;
@@ -317,6 +319,10 @@ export default function Home() {
   const selectedPeakMonth = selectedPest ? peakMonth(analysis.monthly[selectedPest]) : null;
   const selectedPeakSeason = selectedPest ? peakSeason(analysis.seasonal[selectedPest]) : null;
   const reminderMonth = selectedPeakMonth === null ? null : monthNames[(selectedPeakMonth + 11) % 12];
+  const outsideARiskRatio = analysis.scoreImpact.withoutPestOutsideARate
+    ? analysis.scoreImpact.withPestOutsideARate / analysis.scoreImpact.withoutPestOutsideARate
+    : 0;
+  const impactChartMax = Math.max(1, analysis.scoreImpact.withPestOutsideARate, analysis.scoreImpact.withoutPestOutsideARate);
 
   return (
     <main className="story-shell">
@@ -496,10 +502,8 @@ export default function Home() {
                   </div>
                   <div className="role-calendar-action"><strong>What this could mean for you</strong><span>{activeAudienceCopy.calendarAction}</span></div>
                   <div className="inspection-transition">
-                    <h3>Move from the citywide pattern to your restaurant.</h3>
-                    <p>Seasonal patterns show when certain pest violations have historically appeared more often. Your own inspection history can show which issues may be most relevant to your restaurant.</p>
-                    <p className="nearby-note"><strong>Nearby comparison is the next planned layer.</strong> The current MVP starts with verified restaurant-level inspection history.</p>
-                    <Link href="/restaurant">Check My Inspection Record →</Link>
+                    <h3>Next, see why your own record matters.</h3>
+                    <p>Seasonal patterns show when pest violations appeared more often. Inspection scores show why understanding your restaurant’s history is an important next step.</p>
                   </div>
                   <p className="calendar-method">Based on {analysis.inspectionCount.toLocaleString()} unique initial inspections from 2025. This describes recorded inspection patterns and does not predict present conditions or a future inspection.</p>
                 </>
@@ -507,11 +511,38 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {chapter === 6 && (
+          <div className="scene impact-scene">
+            <div className="impact-copy">
+              <p className="eyebrow">Why this matters</p>
+              <h2>Pest findings and inspection scores move together.</h2>
+              <p>NYC inspection scores affect grade eligibility and how frequently a restaurant may be inspected. A score from 0–13 is in the A-grade range; 14 or more falls outside it.</p>
+              <div className="impact-stat"><strong>{outsideARiskRatio.toFixed(1)}×</strong><span>as likely to score outside the A-grade range when an initial inspection included a critical pest violation.</span></div>
+              <p className="impact-caution">This is an association, not proof that pests alone caused the final score. Pest violations contribute points to an inspection score.</p>
+            </div>
+
+            <div className="impact-evidence">
+              <div className="impact-chart" role="img" aria-label={`${formatRate(analysis.scoreImpact.withPestOutsideARate)} of scored initial inspections with critical pest violations and ${formatRate(analysis.scoreImpact.withoutPestOutsideARate)} without critical pest violations scored 14 or higher in 2025.`}>
+                <div className="impact-chart-heading"><span>2025 SCORED INITIAL INSPECTIONS</span><h3>Share outside the A-grade score range</h3></div>
+                <div className="impact-bar pest-present"><span>With a critical pest violation</span><div><i style={{ width: `${(analysis.scoreImpact.withPestOutsideARate / impactChartMax) * 100}%` }} /></div><strong>{formatRate(analysis.scoreImpact.withPestOutsideARate)}</strong></div>
+                <div className="impact-bar pest-absent"><span>Without a critical pest violation</span><div><i style={{ width: `${(analysis.scoreImpact.withoutPestOutsideARate / impactChartMax) * 100}%` }} /></div><strong>{formatRate(analysis.scoreImpact.withoutPestOutsideARate)}</strong></div>
+                <p>{analysis.scoreImpact.scoredInspectionCount.toLocaleString()} unique initial inspections with reported scores. Each inspection is counted once.</p>
+              </div>
+              <div className="impact-cta">
+                <span>SEE WHERE YOUR RESTAURANT STANDS</span>
+                <h3>Move from the citywide pattern to your own record.</h3>
+                <p>Search your restaurant to review its verified pest-related inspection history and compare its 2025 initial-inspection scores with restaurants inspected within 500 meters.</p>
+                <Link href="/restaurant">Check My Inspection Record →</Link>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {chapter > 0 && <button className="nav-button nav-back" onClick={goBack} aria-label="Previous chapter">←</button>}
       {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <button className={`nav-button nav-next ${!canAdvance ? "disabled" : ""}`} onClick={goNext} disabled={!canAdvance} aria-label="Next chapter">→</button>}
-      {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <p className="continue-label">{canAdvance ? "Continue" : "Make one prediction"}<span>Arrow keys work, too</span></p>}
+      {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 5 ? "Choose one pest" : "Make one prediction"}<span>Arrow keys work, too</span></p>}
     </main>
   );
 }

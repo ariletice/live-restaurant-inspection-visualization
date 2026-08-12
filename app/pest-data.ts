@@ -7,6 +7,7 @@ export type PestApiRow = {
   inspection_type?: string;
   violation_code?: string;
   critical_flag?: string;
+  score?: string;
 };
 
 export type PestAnalysis = {
@@ -14,6 +15,15 @@ export type PestAnalysis = {
   overallSeasonal: Record<Season, number>;
   seasonal: Record<PestType, Record<Season, number>>;
   monthly: Record<PestType, number[]>;
+  scoreImpact: {
+    scoredInspectionCount: number;
+    withPestCount: number;
+    withoutPestCount: number;
+    withPestOutsideARate: number;
+    withoutPestOutsideARate: number;
+    withPestAverageScore: number;
+    withoutPestAverageScore: number;
+  };
 };
 
 export const seasons: Season[] = ["Winter", "Spring", "Summer", "Fall"];
@@ -83,6 +93,15 @@ export const fallbackPestAnalysis: PestAnalysis = {
     roaches: [6.3555, 3.3223, 5.312, 3.9578, 4.2243, 5.2409, 7.0489, 7.6305, 6.8815, 7.2785, 6.07, 4.0248],
     flies: [8.2423, 5.1495, 5.6492, 6.7282, 7.0648, 13.0178, 17.1053, 17.9719, 20.0348, 18.2753, 17.4319, 9.6749],
   },
+  scoreImpact: {
+    scoredInspectionCount: 17135,
+    withPestCount: 5079,
+    withoutPestCount: 12056,
+    withPestOutsideARate: 75.4479,
+    withoutPestOutsideARate: 27.5796,
+    withPestAverageScore: 28.9309,
+    withoutPestAverageScore: 14.2731,
+  },
 };
 
 const codeToPest = new Map(Object.entries(pestConfig).map(([pest, config]) => [config.code, pest as PestType]));
@@ -102,6 +121,7 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
   const monthlyDenominators = Array.from({ length: 12 }, () => new Set<string>());
   const seasonalDenominators = createSeasonSets();
   const overallSeasonalNumerators = createSeasonSets();
+  const scoredInspections = new Map<string, { score: number | null; hasCriticalPest: boolean }>();
   const monthlyNumerators = Object.fromEntries(
     pestTypes.map((pest) => [pest, Array.from({ length: 12 }, () => new Set<string>())]),
   ) as Record<PestType, Set<string>[]>;
@@ -120,12 +140,19 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
     monthlyDenominators[monthIndex].add(inspectionKey);
     seasonalDenominators[season].add(inspectionKey);
 
-    if (row.critical_flag !== "Critical" || !row.violation_code) continue;
-    const pest = codeToPest.get(row.violation_code);
-    if (!pest) continue;
-    overallSeasonalNumerators[season].add(inspectionKey);
-    monthlyNumerators[pest][monthIndex].add(inspectionKey);
-    seasonalNumerators[pest][season].add(inspectionKey);
+    const scoredInspection = scoredInspections.get(inspectionKey) ?? { score: null, hasCriticalPest: false };
+    if (row.score != null && Number.isFinite(Number(row.score))) scoredInspection.score = Number(row.score);
+
+    if (row.critical_flag === "Critical" && row.violation_code) {
+      const pest = codeToPest.get(row.violation_code);
+      if (pest) {
+        scoredInspection.hasCriticalPest = true;
+        overallSeasonalNumerators[season].add(inspectionKey);
+        monthlyNumerators[pest][monthIndex].add(inspectionKey);
+        seasonalNumerators[pest][season].add(inspectionKey);
+      }
+    }
+    scoredInspections.set(inspectionKey, scoredInspection);
   }
 
   const inspectionCount = seasons.reduce((total, season) => total + seasonalDenominators[season].size, 0);
@@ -161,7 +188,26 @@ export function calculatePestAnalysis(rows: PestApiRow[]): PestAnalysis {
     ]),
   ) as PestAnalysis["monthly"];
 
-  return { inspectionCount, overallSeasonal, seasonal, monthly };
+  const scored = [...scoredInspections.values()].filter((inspection): inspection is { score: number; hasCriticalPest: boolean } => inspection.score !== null);
+  const withPest = scored.filter((inspection) => inspection.hasCriticalPest);
+  const withoutPest = scored.filter((inspection) => !inspection.hasCriticalPest);
+  const summarizeScores = (inspections: { score: number }[]) => ({
+    outsideARate: inspections.length ? (inspections.filter((inspection) => inspection.score >= 14).length / inspections.length) * 100 : 0,
+    averageScore: inspections.length ? inspections.reduce((total, inspection) => total + inspection.score, 0) / inspections.length : 0,
+  });
+  const withPestScores = summarizeScores(withPest);
+  const withoutPestScores = summarizeScores(withoutPest);
+  const scoreImpact: PestAnalysis["scoreImpact"] = {
+    scoredInspectionCount: scored.length,
+    withPestCount: withPest.length,
+    withoutPestCount: withoutPest.length,
+    withPestOutsideARate: withPestScores.outsideARate,
+    withoutPestOutsideARate: withoutPestScores.outsideARate,
+    withPestAverageScore: withPestScores.averageScore,
+    withoutPestAverageScore: withoutPestScores.averageScore,
+  };
+
+  return { inspectionCount, overallSeasonal, seasonal, monthly, scoreImpact };
 }
 
 export function peakSeason(values: Record<Season, number>): Season {
@@ -174,7 +220,7 @@ export function peakMonth(values: number[]): number {
 
 export function buildPestDataUrl(offset = 0, limit = 50000): string {
   const params = new URLSearchParams({
-    "$select": "camis,inspection_date,inspection_type,violation_code,critical_flag",
+    "$select": "camis,inspection_date,inspection_type,violation_code,critical_flag,score",
     "$where": "inspection_date between '2025-01-01T00:00:00.000' and '2025-12-31T23:59:59.999' AND inspection_type like '%Initial Inspection%'",
     "$order": "camis,inspection_date,inspection_type,violation_code",
     "$limit": String(limit),
