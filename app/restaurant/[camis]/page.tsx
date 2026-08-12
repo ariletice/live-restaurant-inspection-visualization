@@ -22,6 +22,10 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatMetric(value: number | null, suffix = "") {
+  return value === null ? "Not available" : `${value.toFixed(1)}${suffix}`;
+}
+
 export default function RestaurantResultsPage() {
   const { camis } = useParams<{ camis: string }>();
   const [historyState, setHistoryState] = useState<HistoryState>("loading");
@@ -128,6 +132,35 @@ export default function RestaurantResultsPage() {
                 </>
               )}
             </div>
+
+            <section className="nearby-comparison" aria-labelledby="nearby-comparison-heading">
+              <div className="nearby-comparison-heading">
+                <p className="eyebrow">Nearby benchmark</p>
+                <h3 id="nearby-comparison-heading">How did this restaurant compare nearby?</h3>
+                <p>The comparison uses unique scored initial inspections from 2025, matching the period and score rules used in the data story.</p>
+              </div>
+              {history.nearbyComparison.status === "available" ? (
+                <>
+                  <div className="nearby-metric-grid">
+                    <article>
+                      <span>THIS RESTAURANT</span>
+                      <strong>{formatMetric(history.nearbyComparison.restaurantAverageScore)}</strong>
+                      <small>Average 2025 initial-inspection score</small>
+                      <b>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} outside the A-grade range</b>
+                    </article>
+                    <article>
+                      <span>WITHIN {history.nearbyComparison.radiusMeters} METERS</span>
+                      <strong>{formatMetric(history.nearbyComparison.nearbyAverageScore)}</strong>
+                      <small>Average nearby initial-inspection score</small>
+                      <b>{formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} outside the A-grade range</b>
+                    </article>
+                  </div>
+                  <p className="nearby-method">Nearby benchmark: {history.nearbyComparison.nearbyInspectionCount} scored initial inspection{history.nearbyComparison.nearbyInspectionCount === 1 ? "" : "s"} across {history.nearbyComparison.nearbyRestaurantCount} restaurant{history.nearbyComparison.nearbyRestaurantCount === 1 ? "" : "s"}. This is context, not a rating or forecast of current conditions.</p>
+                </>
+              ) : (
+                <div className="nearby-unavailable"><strong>Nearby comparison unavailable</strong><span>{history.nearbyComparison.reason}</span></div>
+              )}
+            </section>
           </div>
         )}
       </section>

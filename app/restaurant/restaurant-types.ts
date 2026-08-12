@@ -25,6 +25,21 @@ export type RestaurantInspection = {
 export type RestaurantHistory = {
   restaurant: RestaurantMatch;
   inspections: RestaurantInspection[];
+  nearbyComparison: {
+    status: "available";
+    radiusMeters: number;
+    periodLabel: string;
+    restaurantInspectionCount: number;
+    restaurantAverageScore: number | null;
+    restaurantOutsideARate: number | null;
+    nearbyRestaurantCount: number;
+    nearbyInspectionCount: number;
+    nearbyAverageScore: number;
+    nearbyOutsideARate: number;
+  } | {
+    status: "unavailable";
+    reason: string;
+  };
   sourceUrl: string;
 };
 

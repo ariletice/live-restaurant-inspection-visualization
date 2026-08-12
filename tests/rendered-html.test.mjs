@@ -80,6 +80,34 @@ test("restores monthly and seasonal visual comparisons inside the final calendar
   assert.match(styles, /overflow-x: auto/);
 });
 
+test("supports the final CTA with scored inspection evidence", async () => {
+  const [story, pestData] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/pest-data.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(story, /"Your pest calendar",\s+"Why this matters"/);
+  assert.match(story, /Pest findings and inspection scores move together/);
+  assert.match(story, /outsideARiskRatio\.toFixed\(1\)/);
+  assert.match(story, /Check My Inspection Record →/);
+  assert.match(pestData, /critical_flag,score/);
+  assert.match(pestData, /inspection\.score >= 14/);
+});
+
+test("calculates a real 2025 benchmark for restaurants within 500 meters", async () => {
+  const [historyRoute, resultsPage] = await Promise.all([
+    readFile(new URL("../app/api/restaurants/[camis]/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(historyRoute, /within_circle\(location/);
+  assert.match(historyRoute, /radiusMeters = 500/);
+  assert.match(historyRoute, /2025-01-01T00:00:00\.000/);
+  assert.match(historyRoute, /nearbyRestaurantCount/);
+  assert.match(resultsPage, /How did this restaurant compare nearby\?/);
+  assert.match(resultsPage, /WITHIN \{history\.nearbyComparison\.radiusMeters\} METERS/);
+});
+
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
   const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(story, /Which season do you believe has the highest rate of critical pest violations in NYC restaurants\?/);
