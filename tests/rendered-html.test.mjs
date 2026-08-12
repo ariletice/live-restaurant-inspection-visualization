@@ -59,6 +59,28 @@ test("condenses the post-quiz story into a historical pest calendar and MVP brid
   assert.match(story, /Check My Inspection Record →/);
 });
 
+test("restores monthly and seasonal visual comparisons inside the final calendar chapter", async () => {
+  const [story, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(story, /useState<ChartView>\("monthly"\)/);
+  assert.match(story, /role="tablist" aria-label="Choose a pest data comparison"/);
+  assert.match(story, /role="tab" aria-selected=\{chartView === "monthly"\}/);
+  assert.match(story, /role="tab" aria-selected=\{chartView === "seasonal"\}/);
+  assert.match(story, /event\.key === "ArrowRight"/);
+  assert.match(story, /event\.key === "ArrowLeft"/);
+  assert.match(story, /analysis\.monthly\[pest\]/);
+  assert.match(story, /analysis\.seasonal\[pest\]\[season\]/);
+  assert.match(story, /Highest recorded rate/);
+  assert.match(story, /the share of unique initial inspections in that month or season/);
+  assert.match(styles, /\.compact-monthly-chart/);
+  assert.match(styles, /\.seasonal-pest-chart/);
+  assert.match(styles, /align-items: end/);
+  assert.match(styles, /overflow-x: auto/);
+});
+
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
   const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(story, /Which season do you believe has the highest rate of critical pest violations in NYC restaurants\?/);

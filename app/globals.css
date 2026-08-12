@@ -23,6 +23,7 @@ html, body { margin: 0; min-height: 100%; background: var(--cream); color: var(-
 body { font-family: Arial, Helvetica, sans-serif; }
 button, a { font: inherit; }
 button { color: inherit; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 
 .story-shell { min-height: 100svh; height: 100svh; overflow: hidden; position: relative; background: radial-gradient(circle at 12% 25%, rgba(197,239,222,.5), transparent 24%), radial-gradient(circle at 90% 82%, rgba(180,200,248,.38), transparent 25%), var(--cream); }
 .progress { position: fixed; z-index: 20; inset: 10px 12px auto; display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
@@ -150,6 +151,32 @@ p { line-height: 1.55; }
 .historical-label { padding-bottom: 13px; border-bottom: 1px dashed var(--line); }
 .calendar-result-heading { display: flex; align-items: center; gap: 14px; margin: 20px 0 15px; }.calendar-result-heading .pest-mark { color: var(--pest-color); }.calendar-result-heading span { color: var(--muted); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }.calendar-result-heading h3 { margin: 4px 0 0; font: 700 clamp(28px,3vw,42px)/1 Georgia,serif; }
 .historical-recommendation { padding: 17px; background: var(--pest-soft); border-left: 6px solid var(--pest-color); font: 15px/1.5 Georgia,serif; }.historical-recommendation strong { color: var(--ink); }
+.calendar-chart-shell { width: 100%; min-width: 0; margin: 18px 0; }
+.calendar-chart-tabs { display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid var(--ink); background: var(--cream); }
+.calendar-chart-tabs button { padding: 8px 13px; border: 0; background: transparent; color: var(--muted); font-size: 9px; font-weight: 900; cursor: pointer; }
+.calendar-chart-tabs button[aria-selected="true"] { background: var(--ink); color: white; }
+.calendar-chart-tabs button:hover { color: var(--orange); }.calendar-chart-tabs button[aria-selected="true"]:hover { color: white; }
+.calendar-chart-tabs button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.calendar-chart-panel { width: 100%; min-width: 0; margin-top: 8px; padding: 14px; overflow-x: auto; border: 1px solid var(--line); background: rgba(255,255,255,.72); }
+.chart-view-heading { min-width: 440px; display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.chart-view-heading > div:first-child { display: grid; gap: 3px; }.chart-view-heading > div:first-child > span { color: var(--orange); font-size: 7px; font-weight: 900; letter-spacing: .13em; }.chart-view-heading h4 { margin: 0; font: 700 18px/1 Georgia,serif; }
+.chart-key, .pest-chart-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px 10px; color: var(--muted); font-size: 7px; font-weight: 800; }
+.chart-key i, .pest-chart-legend i { width: 9px; height: 9px; display: inline-block; margin-right: 3px; vertical-align: -1px; }.chart-key .peak-key { background: var(--pest-color); }.chart-key .reminder-key { border: 2px solid var(--orange); background: transparent; }
+.compact-monthly-chart { min-width: 440px; height: 170px; display: grid; grid-template-columns: repeat(12,1fr); gap: 5px; border-bottom: 1px solid var(--ink); }
+.compact-month { min-width: 0; display: grid; grid-template-rows: 13px 14px 1fr 18px; gap: 2px; align-items: end; text-align: center; }
+.compact-month-note { min-height: 11px; color: var(--orange); font-size: 6px; font-weight: 900; text-transform: uppercase; }.compact-month.peak .compact-month-note { color: var(--pest-color); }
+.compact-month-rate { color: var(--muted); font-size: 6px; font-weight: 800; }
+.compact-month-track { width: 100%; height: 100%; display: flex; align-items: end; background: rgba(10,53,71,.05); }
+.compact-month-track i { width: 100%; display: block; background: color-mix(in srgb,var(--pest-color) 45%,white); transform-origin: bottom; animation: grow-column .6s ease both; }
+.compact-month.peak .compact-month-track i { background: var(--pest-color); }.compact-month.reminder .compact-month-track { outline: 2px solid var(--orange); outline-offset: -2px; }
+.compact-month strong { align-self: center; font-size: 7px; }.compact-month.peak strong { color: var(--pest-color); }.compact-month.reminder strong { color: var(--orange); }
+.pest-chart-legend span { display: flex; align-items: center; }.pest-chart-legend i { border-radius: 50%; background: var(--series-color); }
+.seasonal-pest-chart { min-width: 440px; height: 184px; display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; border-bottom: 1px solid var(--ink); }
+.seasonal-pest-group { min-width: 0; display: grid; grid-template-rows: 1fr 28px; gap: 4px; text-align: center; }
+.seasonal-pest-bars { min-height: 0; display: grid; grid-template-columns: repeat(4,1fr); gap: 3px; align-items: end; }
+.seasonal-pest-bar { height: 100%; display: grid; grid-template-rows: 13px 1fr; gap: 2px; align-items: end; }.seasonal-pest-bar > span { color: var(--muted); font-size: 6px; font-weight: 800; }.seasonal-pest-bar > div { height: 100%; display: flex; align-items: end; background: rgba(10,53,71,.05); }.seasonal-pest-bar i { width: 100%; display: block; background: var(--series-color); transform-origin: bottom; animation: grow-column .6s ease both; }
+.seasonal-pest-group > strong { display: grid; align-content: center; font: 700 10px Georgia,serif; }.seasonal-pest-group small { margin-top: 1px; color: var(--muted); font: 400 6px Arial,sans-serif; }
+.chart-definition { margin: 7px 0 0; color: var(--muted); font-size: 8px; line-height: 1.4; }
 .role-calendar-action { margin: 0 0 18px; padding: 13px 15px; display: grid; gap: 4px; background: var(--blue-soft); font-size: 11px; line-height: 1.45; }
 .inspection-transition { padding-top: 17px; border-top: 1px solid var(--line); }.inspection-transition h3 { margin-bottom: 8px; font: 700 25px/1.05 Georgia,serif; }.inspection-transition p { margin-bottom: 10px; font-size: 11px; }.inspection-transition .nearby-note { color: var(--muted); font-size: 9px; }.inspection-transition a { display: inline-block; margin-top: 3px; padding: 13px 17px; background: var(--ink); color: white; text-decoration: none; font-size: 11px; font-weight: 900; }
 .calendar-method { margin: 14px 0 0; color: var(--muted); font-size: 8px; line-height: 1.45; }

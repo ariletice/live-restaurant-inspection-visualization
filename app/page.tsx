@@ -51,6 +51,7 @@ const fullSeasonMonths: Record<Season, string> = {
 type AudiencePollResults = { counts: Record<Season, number>; total: number };
 
 type AudienceRole = "restaurant-owner" | "pest-professional" | "exploring";
+type ChartView = "monthly" | "seasonal";
 
 const audienceStorageKey = "nyc-pest-prep-audience-role";
 
@@ -100,11 +101,84 @@ function PestMark({ pest }: { pest: PestType }) {
   return <span className={`pest-mark pest-${pest}`} aria-hidden="true"><span className="pest-silhouette">{pestConfig[pest].mark}</span></span>;
 }
 
+function MonthlyTimingChart({ pest, analysis }: { pest: PestType; analysis: PestAnalysis }) {
+  const values = analysis.monthly[pest];
+  const highestMonth = peakMonth(values);
+  const reminderMonthIndex = (highestMonth + 11) % 12;
+  const maxRate = Math.max(1, ...values);
+  const config = pestConfig[pest];
+  const summary = values.map((value, index) => `${monthNames[index]} ${formatRate(value)}`).join(", ");
+
+  return (
+    <div className="calendar-chart-view">
+      <div className="chart-view-heading">
+        <div><span>MONTHLY TIMING</span><h4>{config.name} violations by month</h4></div>
+        <div className="chart-key"><i className="peak-key" /> Highest recorded rate <i className="reminder-key" /> Reminder</div>
+      </div>
+      <div className="compact-monthly-chart" role="img" aria-labelledby="monthly-chart-title" aria-describedby="monthly-chart-summary">
+        <span id="monthly-chart-title" className="visually-hidden">{config.name} critical violation rates by month in 2025</span>
+        {values.map((value, index) => {
+          const isPeak = index === highestMonth;
+          const isReminder = index === reminderMonthIndex;
+          return (
+            <div className={`compact-month ${isPeak ? "peak" : ""} ${isReminder ? "reminder" : ""}`} key={monthNames[index]}>
+              <span className="compact-month-note" aria-hidden="true">{isPeak ? "highest" : isReminder ? "remind" : ""}</span>
+              <span className="compact-month-rate" aria-hidden="true">{formatRate(value)}</span>
+              <span className="compact-month-track" aria-hidden="true"><i style={{ height: `${(value / maxRate) * 100}%` }} /></span>
+              <strong aria-hidden="true">{monthNames[index]}</strong>
+            </div>
+          );
+        })}
+      </div>
+      <p id="monthly-chart-summary" className="visually-hidden">{summary}. {monthNames[highestMonth]} had the highest recorded rate. The suggested reminder month is {monthNames[reminderMonthIndex]}.</p>
+    </div>
+  );
+}
+
+function SeasonalPestComparison({ analysis }: { analysis: PestAnalysis }) {
+  const maxRate = Math.max(1, ...pestTypes.flatMap((pest) => seasons.map((season) => analysis.seasonal[pest][season])));
+  const summary = seasons.map((season) => (
+    `${season}: ${pestTypes.map((pest) => `${pestConfig[pest].name} ${formatRate(analysis.seasonal[pest][season])}`).join(", ")}`
+  )).join(". ");
+
+  return (
+    <div className="calendar-chart-view">
+      <div className="chart-view-heading">
+        <div><span>SEASONAL COMPARISON</span><h4>How all four pest types compare</h4></div>
+        <div className="pest-chart-legend" aria-label="Pest color legend">
+          {pestTypes.map((pest) => <span key={pest} style={{ "--series-color": pestConfig[pest].color } as React.CSSProperties}><i />{pestConfig[pest].name}</span>)}
+        </div>
+      </div>
+      <div className="seasonal-pest-chart" role="img" aria-labelledby="seasonal-chart-title" aria-describedby="seasonal-chart-summary">
+        <span id="seasonal-chart-title" className="visually-hidden">Critical pest violation rates by pest type and season in 2025</span>
+        {seasons.map((season) => (
+          <div className="seasonal-pest-group" key={season}>
+            <div className="seasonal-pest-bars">
+              {pestTypes.map((pest) => {
+                const value = analysis.seasonal[pest][season];
+                return (
+                  <div className="seasonal-pest-bar" key={pest} style={{ "--series-color": pestConfig[pest].color } as React.CSSProperties}>
+                    <span aria-hidden="true">{formatRate(value)}</span>
+                    <div aria-hidden="true"><i style={{ height: `${(value / maxRate) * 100}%` }} /></div>
+                  </div>
+                );
+              })}
+            </div>
+            <strong aria-hidden="true">{season}<small>{seasonMonths[season]}</small></strong>
+          </div>
+        ))}
+      </div>
+      <p id="seasonal-chart-summary" className="visually-hidden">{summary}.</p>
+    </div>
+  );
+}
+
 export default function Home() {
   const [chapter, setChapter] = useState(0);
   const [draftAudienceRole, setDraftAudienceRole] = useState<AudienceRole | null>(null);
   const [audienceRole, setAudienceRole] = useState<AudienceRole | null>(null);
   const [selectedPest, setSelectedPest] = useState<PestType | null>(null);
+  const [chartView, setChartView] = useState<ChartView>("monthly");
   const [overallPrediction, setOverallPrediction] = useState<Season | null>(null);
   const [analysis, setAnalysis] = useState<PestAnalysis>(fallbackPestAnalysis);
   const [dataStatus, setDataStatus] = useState<"loading" | "live" | "saved">("loading");
@@ -203,6 +277,21 @@ export default function Home() {
     setChapter((current) => Math.min(chapters.length - 1, current + 1));
   }, [canAdvance, chapter, draftAudienceRole]);
   const goBack = useCallback(() => setChapter((current) => Math.max(0, current - 1)), []);
+
+  const changeChartViewWithKeyboard = useCallback((event: React.KeyboardEvent<HTMLButtonElement>, currentView: ChartView) => {
+    const views: ChartView[] = ["monthly", "seasonal"];
+    const currentIndex = views.indexOf(currentView);
+    let nextIndex = currentIndex;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % views.length;
+    else if (event.key === "ArrowLeft") nextIndex = (currentIndex + views.length - 1) % views.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = views.length - 1;
+    else return;
+    event.preventDefault();
+    const nextView = views[nextIndex];
+    setChartView(nextView);
+    window.requestAnimationFrame(() => document.getElementById(`calendar-chart-tab-${nextView}`)?.focus());
+  }, []);
 
   const goToChapter = useCallback((nextChapter: number) => {
     if (!audienceRole && nextChapter > 2) return;
@@ -395,6 +484,16 @@ export default function Home() {
                   <div className="historical-label">HISTORICAL INSPECTION PATTERN — NOT A FORECAST</div>
                   <div className="calendar-result-heading"><PestMark pest={selectedPest} /><div><span>{selectedPeakSeason} pattern</span><h3>{selectedConfig.name}: prepare by {reminderMonth}</h3></div></div>
                   <p className="historical-recommendation">Based on historical NYC inspection records, <strong>{selectedConfig.singular} violations were recorded at their highest inspection rate during {monthNames[selectedPeakMonth]}</strong>. Add a prevention reminder before that period.</p>
+                  <div className="calendar-chart-shell">
+                    <div className="calendar-chart-tabs" role="tablist" aria-label="Choose a pest data comparison">
+                      <button id="calendar-chart-tab-monthly" role="tab" aria-selected={chartView === "monthly"} aria-controls="calendar-chart-panel" tabIndex={chartView === "monthly" ? 0 : -1} onClick={() => setChartView("monthly")} onKeyDown={(event) => changeChartViewWithKeyboard(event, "monthly")}>Monthly timing</button>
+                      <button id="calendar-chart-tab-seasonal" role="tab" aria-selected={chartView === "seasonal"} aria-controls="calendar-chart-panel" tabIndex={chartView === "seasonal" ? 0 : -1} onClick={() => setChartView("seasonal")} onKeyDown={(event) => changeChartViewWithKeyboard(event, "seasonal")}>Compare pests</button>
+                    </div>
+                    <div id="calendar-chart-panel" className="calendar-chart-panel" role="tabpanel" aria-labelledby={`calendar-chart-tab-${chartView}`}>
+                      {chartView === "monthly" ? <MonthlyTimingChart pest={selectedPest} analysis={analysis} /> : <SeasonalPestComparison analysis={analysis} />}
+                    </div>
+                    <p className="chart-definition"><strong>What the percentages mean:</strong> the share of unique initial inspections in that month or season where inspectors recorded the specified critical pest violation.</p>
+                  </div>
                   <div className="role-calendar-action"><strong>What this could mean for you</strong><span>{activeAudienceCopy.calendarAction}</span></div>
                   <div className="inspection-transition">
                     <h3>Move from the citywide pattern to your restaurant.</h3>
