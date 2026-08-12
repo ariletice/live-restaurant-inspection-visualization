@@ -524,7 +524,7 @@ export default function Home() {
 
             <div className="impact-evidence">
               <div className="impact-chart" role="img" aria-label={`${formatRate(analysis.scoreImpact.withPestOutsideARate)} of scored initial inspections with critical pest violations and ${formatRate(analysis.scoreImpact.withoutPestOutsideARate)} without critical pest violations scored 14 or higher in 2025.`}>
-                <div className="impact-chart-heading"><span>2025 SCORED INITIAL INSPECTIONS</span><h3>Share outside the A-grade score range</h3></div>
+                <div className="impact-chart-heading"><span>2025 SCORED INITIAL INSPECTIONS</span><h3>Percent of inspections outside the A-grade range</h3></div>
                 <div className="impact-bar pest-present"><span>With a critical pest violation</span><div><i style={{ width: `${(analysis.scoreImpact.withPestOutsideARate / impactChartMax) * 100}%` }} /></div><strong>{formatRate(analysis.scoreImpact.withPestOutsideARate)}</strong></div>
                 <div className="impact-bar pest-absent"><span>Without a critical pest violation</span><div><i style={{ width: `${(analysis.scoreImpact.withoutPestOutsideARate / impactChartMax) * 100}%` }} /></div><strong>{formatRate(analysis.scoreImpact.withoutPestOutsideARate)}</strong></div>
                 <p>{analysis.scoreImpact.scoredInspectionCount.toLocaleString()} unique initial inspections with reported scores. Each inspection is counted once.</p>
