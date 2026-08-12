@@ -24,11 +24,7 @@ const chapters = [
   "Who you are",
   "Make one prediction",
   "Overall result",
-  "Choose your pests",
-  "Compare pest types",
-  "Monthly timing",
-  "Action plan",
-  "Method",
+  "Your pest calendar",
 ];
 
 const seasonMonths: Record<Season, string> = {
@@ -66,43 +62,19 @@ const audienceRoles: { value: AudienceRole; label: string }[] = [
 
 const audienceCopy: Record<AudienceRole, {
   insight: string;
-  transitionEyebrow: string;
-  transitionHeading: string;
-  transitionInstruction: string;
-  ctaLabel: string;
-  ctaHeading: string;
-  ctaBody: string;
-  ctaLink: string;
+  calendarAction: string;
 }> = {
   "restaurant-owner": {
     insight: "For restaurant owners and managers, this pattern can help time preventative checks before inspectors most often record critical pest violations.",
-    transitionEyebrow: "Plan for your restaurant",
-    transitionHeading: "Which pests should we put on your restaurant’s calendar?",
-    transitionInstruction: "Select every pest that concerns your restaurant. Choose at least one.",
-    ctaLabel: "YOUR RESTAURANT, NEXT",
-    ctaHeading: "See what NYC inspection data says about your restaurant.",
-    ctaBody: "Search your restaurant to view its pest-related inspection history and preventative next steps.",
-    ctaLink: "Find My Restaurant →",
+    calendarAction: "Add a reminder to review prevention steps before the historically higher-recording period.",
   },
   "pest-professional": {
     insight: "For pest-control professionals, this pattern can support proactive conversations with restaurant clients before seasonal inspection findings peak.",
-    transitionEyebrow: "Support your restaurant clients",
-    transitionHeading: "Which pest risks should we compare for your restaurant clients?",
-    transitionInstruction: "Select every pest you want to compare for restaurant clients. Choose at least one.",
-    ctaLabel: "FOR YOUR CLIENT WORK, NEXT",
-    ctaHeading: "Explore the inspection history behind a restaurant’s pest risks.",
-    ctaBody: "Search an NYC restaurant to review verified pest-related findings and practical prevention guidance.",
-    ctaLink: "Search a Restaurant →",
+    calendarAction: "Use the seasonal pattern to plan timely education or outreach with restaurant clients.",
   },
   exploring: {
     insight: "For anyone exploring the data, this pattern shows that critical pest findings vary by season, even though season alone does not cause a violation.",
-    transitionEyebrow: "Explore the pattern",
-    transitionHeading: "Which pest types would you like to explore?",
-    transitionInstruction: "Select every pest type you want to compare. Choose at least one.",
-    ctaLabel: "KEEP EXPLORING",
-    ctaHeading: "Explore a restaurant’s verified inspection history.",
-    ctaBody: "Search an NYC restaurant to see pest-related findings explained in plain language.",
-    ctaLink: "Explore Restaurant Records →",
+    calendarAction: "Learn when recorded pest violations have historically increased across NYC inspections.",
   },
 };
 
@@ -128,56 +100,11 @@ function PestMark({ pest }: { pest: PestType }) {
   return <span className={`pest-mark pest-${pest}`} aria-hidden="true"><span className="pest-silhouette">{pestConfig[pest].mark}</span></span>;
 }
 
-function PestComparison({ analysis }: { analysis: PestAnalysis }) {
-  return (
-    <div className="comparison-table" role="table" aria-label="Pest violation rates by season">
-      <div className="comparison-header" role="row">
-        <span role="columnheader">Critical violation</span>
-        {seasons.map((season) => <span role="columnheader" key={season}>{season}<small>{seasonMonths[season]}</small></span>)}
-        <span role="columnheader">Peak month</span>
-      </div>
-      {pestTypes.map((pest) => {
-        const peak = peakSeason(analysis.seasonal[pest]);
-        const month = peakMonth(analysis.monthly[pest]);
-        return (
-          <div className={`comparison-row pest-${pest}`} role="row" key={pest}>
-            <span role="cell"><PestMark pest={pest} /><strong>{pestConfig[pest].name}</strong></span>
-            {seasons.map((season) => (
-              <span role="cell" className={season === peak ? "cell-peak" : ""} key={season}>
-                {formatRate(analysis.seasonal[pest][season])}
-              </span>
-            ))}
-            <span role="cell"><strong>{monthNames[month]}</strong></span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function MonthlyChart({ pest, analysis }: { pest: PestType; analysis: PestAnalysis }) {
-  const values = analysis.monthly[pest];
-  const max = Math.max(...values);
-  const peak = peakMonth(values);
-  const config = pestConfig[pest];
-  return (
-    <div className="monthly-chart" style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties} aria-label={`${config.name} critical violation rate by month`}>
-      {values.map((value, index) => (
-        <div className={`month-column ${index === peak ? "peak" : ""}`} key={monthNames[index]}>
-          <div className="month-value">{formatRate(value)}</div>
-          <div className="month-track"><div className="month-fill" style={{ height: `${(value / max) * 100}%` }} /></div>
-          <strong>{monthNames[index]}</strong>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 export default function Home() {
   const [chapter, setChapter] = useState(0);
   const [draftAudienceRole, setDraftAudienceRole] = useState<AudienceRole | null>(null);
   const [audienceRole, setAudienceRole] = useState<AudienceRole | null>(null);
-  const [selectedPests, setSelectedPests] = useState<PestType[]>([]);
+  const [selectedPest, setSelectedPest] = useState<PestType | null>(null);
   const [overallPrediction, setOverallPrediction] = useState<Season | null>(null);
   const [analysis, setAnalysis] = useState<PestAnalysis>(fallbackPestAnalysis);
   const [dataStatus, setDataStatus] = useState<"loading" | "live" | "saved">("loading");
@@ -261,16 +188,11 @@ export default function Home() {
     }
   }, []);
 
-  const togglePest = useCallback((pest: PestType) => {
-    setSelectedPests((current) => current.includes(pest) ? current.filter((item) => item !== pest) : [...current, pest]);
-  }, []);
-
   const canAdvance = useMemo(() => {
     if (chapter === 2) return draftAudienceRole !== null;
     if (chapter === 3) return overallPrediction !== null;
-    if (chapter === 5) return selectedPests.length > 0;
     return true;
-  }, [chapter, draftAudienceRole, overallPrediction, selectedPests]);
+  }, [chapter, draftAudienceRole, overallPrediction]);
 
   const goNext = useCallback(() => {
     if (!canAdvance) return;
@@ -298,12 +220,14 @@ export default function Home() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [goBack, goNext]);
 
-  const primaryPest = selectedPests[0] ?? "mice";
-  const primaryConfig = pestConfig[primaryPest];
   const overallPeak = peakSeason(analysis.overallSeasonal);
   const overallMax = Math.max(...seasons.map((season) => analysis.overallSeasonal[season]));
   const audienceMax = Math.max(1, ...seasons.map((season) => audiencePoll.counts[season]));
   const activeAudienceCopy = audienceCopy[audienceRole ?? "exploring"];
+  const selectedConfig = selectedPest ? pestConfig[selectedPest] : null;
+  const selectedPeakMonth = selectedPest ? peakMonth(analysis.monthly[selectedPest]) : null;
+  const selectedPeakSeason = selectedPest ? peakSeason(analysis.seasonal[selectedPest]) : null;
+  const reminderMonth = selectedPeakMonth === null ? null : monthNames[(selectedPeakMonth + 11) % 12];
 
   return (
     <main className="story-shell">
@@ -442,99 +366,53 @@ export default function Home() {
         )}
 
         {chapter === 5 && (
-          <div className="scene pest-picker-scene">
-            <div className="scene-heading centered"><p className="eyebrow">{activeAudienceCopy.transitionEyebrow}</p><h2>{activeAudienceCopy.transitionHeading}</h2><p className="instruction">{activeAudienceCopy.transitionInstruction}</p></div>
-            <div className="pest-picker" role="group" aria-label="Choose one or more pest types">
-              {pestTypes.map((pest) => (
-                <button
-                  key={pest}
-                  className={`pest-choice pest-${pest} ${selectedPests.includes(pest) ? "selected" : ""}`}
-                  onClick={() => togglePest(pest)}
-                  aria-pressed={selectedPests.includes(pest)}
-                >
-                  <PestMark pest={pest} /><strong>{pestConfig[pest].name}</strong><small>{pestConfig[pest].description}</small><span>{selectedPests.includes(pest) ? "✓ Selected" : `Code ${pestConfig[pest].code}`}</span>
-                </button>
-              ))}
-            </div>
-            <p className="choice-confirmation">{selectedPests.length ? `${selectedPests.length} pest${selectedPests.length === 1 ? "" : "s"} selected. Continue when your list is complete.` : "Select at least one pest to continue."}</p>
-          </div>
-        )}
-
-        {chapter === 6 && (
-          <div className="scene compare-scene">
-            <div className="scene-heading"><p className="eyebrow">See the full pattern</p><h2>Different pests need <span className="text-emphasis emphasis-blue">different calendars.</span></h2><p>Rodent violations are strongest earlier in the year. Roaches and flies rise later—so one generic “pest season” can hide the preparation window that matters.</p></div>
-            <PestComparison analysis={analysis} />
-          </div>
-        )}
-
-        {chapter === 7 && (
-          <div className="scene monthly-scene multi-monthly-scene">
-            <div className="scene-heading centered"><p className="eyebrow">Plan before each peak</p><h2>Turn the seasonal result into a <span className="text-emphasis emphasis-green">preparation calendar.</span></h2><p>The monthly view shows when each selected pest reached its highest rate—and when a preventative check could begin.</p></div>
-            <div className="multi-month-grid">
-              {selectedPests.map((pest) => {
-                const config = pestConfig[pest];
-                const pestPeakMonth = peakMonth(analysis.monthly[pest]);
-                const pestPreparationMonth = monthNames[(pestPeakMonth + 11) % 12];
-                return (
-                  <article className="multi-month-card" key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}>
-                    <div className="multi-month-heading"><PestMark pest={pest} /><div><h3>{config.name} peak in {monthNames[pestPeakMonth]}</h3><p>Begin your check by <strong>{pestPreparationMonth}</strong>.</p></div></div>
-                    <MonthlyChart pest={pest} analysis={analysis} />
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {chapter === 8 && (
-          <div className="scene action-scene" style={{ "--pest-color": primaryConfig.color, "--pest-soft": primaryConfig.soft } as React.CSSProperties}>
-            <div className="action-copy">
-              <p className="eyebrow">Your preparation window</p>
-              <h2>Build one plan around <span className="text-emphasis emphasis-orange">every selected risk.</span></h2>
-              <p>The data does not predict what will happen at your restaurant. It gives you a practical moment to review the conditions that allow pests to enter, hide, find food, or access water.</p>
-              <div className="preparation-windows" aria-label="Suggested preparation months">
-                {selectedPests.map((pest) => {
-                  const config = pestConfig[pest];
-                  const pestPeakMonth = peakMonth(analysis.monthly[pest]);
-                  const pestPreparationMonth = monthNames[(pestPeakMonth + 11) % 12];
-                  return <article key={pest} style={{ "--pest-color": config.color, "--pest-soft": config.soft } as React.CSSProperties}><PestMark pest={pest} /><span><strong>{config.name}</strong>Begin by {pestPreparationMonth}</span></article>;
-                })}
+          <div className="scene calendar-bridge-scene">
+            <div className="calendar-choice-panel">
+              <p className="eyebrow">Turn the insight into action</p>
+              <h2>What pest should we put on your calendar?</h2>
+              <p className="instruction">Choose one pest to see its historically higher-recording period in 2025 NYC inspection data.</p>
+              <div className="calendar-pest-options" role="radiogroup" aria-label="Choose one pest for a historical prevention reminder">
+                {pestTypes.map((pest) => (
+                  <button
+                    key={pest}
+                    role="radio"
+                    className={`calendar-pest-option pest-${pest} ${selectedPest === pest ? "selected" : ""}`}
+                    onClick={() => setSelectedPest(pest)}
+                    aria-checked={selectedPest === pest}
+                  >
+                    <PestMark pest={pest} />
+                    <span><strong>{pestConfig[pest].name}</strong><small>{pestConfig[pest].description}</small></span>
+                  </button>
+                ))}
               </div>
-              <div className="owner-checklist">
-                <label><input type="checkbox" /><span><strong>Seal entry points</strong>Check cracks, holes, cabinets, doors, and exterior door sweeps.</span></label>
-                <label><input type="checkbox" /><span><strong>Remove food and shelter</strong>Use pest-proof containers, manage garbage, reduce clutter, and inspect deliveries.</span></label>
-                <label><input type="checkbox" /><span><strong>Clean hidden areas</strong>Remove grease and food particles from equipment, floors, and range hoods.</span></label>
-                <label><input type="checkbox" /><span><strong>Review your monitoring plan</strong>Document problem areas and discuss findings with a licensed pest professional.</span></label>
-              </div>
-              <small className="guidance-source">Checklist adapted from NYC Health pest-proofing guidance and integrated pest management principles.</small>
             </div>
 
-            <aside className="referral-panel" id="referrals">
-              <span className="panel-label">REFERRAL-READY MVP</span>
-              <h3>Need professional support?</h3>
-              <p>NYC advises restaurants to work with a pest-management professional who is licensed to serve food establishments.</p>
-              <a className="official-link" href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">Find official NYC pest resources ↗</a>
-              <div className="partner-placeholder">
-                <strong>Verified provider links will live here.</strong>
-                <p>Before activation, each provider should be licensed, serve NYC restaurants, address the selected pest, and agree to transparent referral terms.</p>
-                <button disabled>Restaurant pest partners coming soon</button>
-              </div>
-              <small>Future referral or sponsored links must be labeled clearly. Provider inclusion will not represent NYC Health Department endorsement or guarantee an inspection result.</small>
-            </aside>
-          </div>
-        )}
-
-        {chapter === 9 && (
-          <div className="scene method-scene">
-            <div className="method-copy"><p className="eyebrow">Method and limits</p><h2>Inspection detections are a <span className="text-emphasis emphasis-blue">signal—not a pest forecast.</span></h2><p>This analysis groups unique NYC restaurant initial inspections from 2025 by month and season. Each rate is the percentage of those inspections containing the specified critical pest violation.</p><ul><li>Rows represent inspection results or violations, while the rates use unique inspections.</li><li>The results show when inspectors recorded violations, not the total pest population in NYC.</li><li>Seasonal association does not prove that weather or season caused a violation.</li><li>A specific restaurant’s current inspection record matters more than a citywide pattern.</li></ul><div className="method-links"><a href="https://data.cityofnewyork.us/Health/DOHMH-New-York-City-Restaurant-Inspection-Results/43nn-pn8j/about_data" target="_blank" rel="noreferrer">NYC inspection data ↗</a><a href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">NYC restaurant pest guidance ↗</a><a href="https://www.epa.gov/ipm/introduction-integrated-pest-management" target="_blank" rel="noreferrer">EPA integrated pest management ↗</a></div><div className="mvp-cta"><span className="panel-label">{activeAudienceCopy.ctaLabel}</span><h3>{activeAudienceCopy.ctaHeading}</h3><p>{activeAudienceCopy.ctaBody}</p><Link href="/restaurant">{activeAudienceCopy.ctaLink}</Link></div></div>
-            <div className="data-receipt"><span>DATA RECEIPT</span><dl><div><dt>Year</dt><dd>2025</dd></div><div><dt>Unique initial inspections</dt><dd>{analysis.inspectionCount.toLocaleString()}</dd></div><div><dt>Pest codes</dt><dd>04K–04N</dd></div><div><dt>Connection</dt><dd>{dataStatus === "live" ? "Live" : "Saved"}</dd></div><div><dt>Last checked</dt><dd>{lastChecked || "Checking now"}</dd></div></dl><button onClick={() => void fetchLiveData()} disabled={dataStatus === "loading"}>{dataStatus === "loading" ? "Refreshing…" : "Re-run the live fetch"}</button></div>
+            <div className="calendar-result-panel" aria-live="polite" style={selectedConfig ? { "--pest-color": selectedConfig.color, "--pest-soft": selectedConfig.soft } as React.CSSProperties : undefined}>
+              {!selectedPest || !selectedConfig || selectedPeakMonth === null || !selectedPeakSeason || !reminderMonth ? (
+                <div className="calendar-empty"><span>Historical calendar</span><h3>Select a pest to build your reminder.</h3><p>This step uses documented 2025 inspection patterns, not a prediction of current pest activity.</p></div>
+              ) : (
+                <>
+                  <div className="historical-label">HISTORICAL INSPECTION PATTERN — NOT A FORECAST</div>
+                  <div className="calendar-result-heading"><PestMark pest={selectedPest} /><div><span>{selectedPeakSeason} pattern</span><h3>{selectedConfig.name}: prepare by {reminderMonth}</h3></div></div>
+                  <p className="historical-recommendation">Based on historical NYC inspection records, <strong>{selectedConfig.singular} violations were recorded at their highest inspection rate during {monthNames[selectedPeakMonth]}</strong>. Add a prevention reminder before that period.</p>
+                  <div className="role-calendar-action"><strong>What this could mean for you</strong><span>{activeAudienceCopy.calendarAction}</span></div>
+                  <div className="inspection-transition">
+                    <h3>Move from the citywide pattern to your restaurant.</h3>
+                    <p>Seasonal patterns show when certain pest violations have historically appeared more often. Your own inspection history can show which issues may be most relevant to your restaurant.</p>
+                    <p className="nearby-note"><strong>Nearby comparison is the next planned layer.</strong> The current MVP starts with verified restaurant-level inspection history.</p>
+                    <Link href="/restaurant">Check My Inspection Record →</Link>
+                  </div>
+                  <p className="calendar-method">Based on {analysis.inspectionCount.toLocaleString()} unique initial inspections from 2025. This describes recorded inspection patterns and does not predict present conditions or a future inspection.</p>
+                </>
+              )}
+            </div>
           </div>
         )}
       </section>
 
       {chapter > 0 && <button className="nav-button nav-back" onClick={goBack} aria-label="Previous chapter">←</button>}
       {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <button className={`nav-button nav-next ${!canAdvance ? "disabled" : ""}`} onClick={goNext} disabled={!canAdvance} aria-label="Next chapter">→</button>}
-      {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <p className="continue-label">{canAdvance ? "Continue" : chapter === 3 ? "Make one prediction" : "Choose at least one pest"}<span>Arrow keys work, too</span></p>}
+      {chapter > 0 && chapter < chapters.length - 1 && chapter !== 2 && <p className="continue-label">{canAdvance ? "Continue" : "Make one prediction"}<span>Arrow keys work, too</span></p>}
     </main>
   );
 }

@@ -38,14 +38,25 @@ test("adds a gated, session-based audience step before the prediction quiz", asy
 
 test("personalizes only the shared story language for each audience role", async () => {
   const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-  assert.match(story, /Which pests should we put on your restaurant’s calendar\?/);
-  assert.match(story, /Which pest risks should we compare for your restaurant clients\?/);
-  assert.match(story, /Which pest types would you like to explore\?/);
-  assert.match(story, /Find My Restaurant →/);
-  assert.match(story, /Search a Restaurant →/);
-  assert.match(story, /Explore Restaurant Records →/);
+  assert.match(story, /Add a reminder to review prevention steps/);
+  assert.match(story, /plan timely education or outreach/);
+  assert.match(story, /Learn when recorded pest violations have historically increased/);
   assert.match(story, /season alone does not cause a violation/);
   assert.match(story, /activeAudienceCopy\.insight/);
+});
+
+test("condenses the post-quiz story into a historical pest calendar and MVP bridge", async () => {
+  const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(story, /"Overall result",\s+"Your pest calendar"/);
+  assert.doesNotMatch(story, /"Compare pest types"/);
+  assert.doesNotMatch(story, /"Monthly timing"/);
+  assert.doesNotMatch(story, /"Action plan"/);
+  assert.match(story, /What pest should we put on your calendar\?/);
+  assert.match(story, /HISTORICAL INSPECTION PATTERN — NOT A FORECAST/);
+  assert.match(story, /recorded at their highest inspection rate during/);
+  assert.match(story, /Seasonal patterns show when certain pest violations have historically appeared more often/);
+  assert.match(story, /Nearby comparison is the next planned layer/);
+  assert.match(story, /Check My Inspection Record →/);
 });
 
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
@@ -91,7 +102,7 @@ test("connects the story and MVP with the required customer states", async () =>
   ]);
 
   assert.match(story, /href="\/restaurant"/);
-  assert.match(story, /Find My Restaurant/);
+  assert.match(story, /Check My Inspection Record/);
   assert.match(searchPage, /router\.push\(`\/restaurant\/\$\{restaurant\.camis\}`\)/);
   assert.doesNotMatch(searchPage, /No pest-related violations were found/);
   assert.match(resultsPage, /Loading inspection history/);
