@@ -21,6 +21,33 @@ test("keeps the seasonal data story as the homepage", async () => {
   assert.match(html, /NYC Pest Prep/i);
 });
 
+test("adds a gated, session-based audience step before the prediction quiz", async () => {
+  const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(story, /"Why timing matters",\s+"Who you are",\s+"Make one prediction"/);
+  assert.match(story, /Before We Continue, Tell Us Who You Are/);
+  assert.match(story, /Which option best describes you\?/);
+  assert.match(story, /Restaurant owner or manager/);
+  assert.match(story, /Pest-control professional/);
+  assert.match(story, /Other or just exploring/);
+  assert.match(story, /nyc-pest-prep-audience-role/);
+  assert.match(story, /window\.sessionStorage\.setItem\(audienceStorageKey, draftAudienceRole\)/);
+  assert.match(story, /type="radio" name="audience-role"/);
+  assert.match(story, /disabled=\{!draftAudienceRole\}>Continue to Quiz/);
+  assert.match(story, /disabled=\{!audienceRole && index > 2\}/);
+});
+
+test("personalizes only the shared story language for each audience role", async () => {
+  const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(story, /Which pests should we put on your restaurant’s calendar\?/);
+  assert.match(story, /Which pest risks should we compare for your restaurant clients\?/);
+  assert.match(story, /Which pest types would you like to explore\?/);
+  assert.match(story, /Find My Restaurant →/);
+  assert.match(story, /Search a Restaurant →/);
+  assert.match(story, /Explore Restaurant Records →/);
+  assert.match(story, /season alone does not cause a violation/);
+  assert.match(story, /activeAudienceCopy\.insight/);
+});
+
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
   const story = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(story, /Which season do you believe has the highest rate of critical pest violations in NYC restaurants\?/);
