@@ -104,8 +104,11 @@ test("calculates a real 2025 benchmark for restaurants within 500 meters", async
   assert.match(historyRoute, /radiusMeters = 500/);
   assert.match(historyRoute, /2025-01-01T00:00:00\.000/);
   assert.match(historyRoute, /nearbyRestaurantCount/);
-  assert.match(resultsPage, /How did this restaurant compare nearby\?/);
-  assert.match(resultsPage, /WITHIN \{history\.nearbyComparison\.radiusMeters\} METERS/);
+  assert.match(resultsPage, /How does this restaurant compare nearby\?/);
+  assert.match(resultsPage, /outsideADifference/);
+  assert.match(resultsPage, /percentage points \{comparisonDirection\} nearby restaurants/);
+  assert.match(resultsPage, /lower scores are better/);
+  assert.match(resultsPage, /A small number of inspections can produce a large percentage change/);
 });
 
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {

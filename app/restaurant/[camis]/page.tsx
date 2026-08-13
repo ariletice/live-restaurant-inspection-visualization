@@ -61,6 +61,17 @@ export default function RestaurantResultsPage() {
   const latestInspection = history?.inspections.find(
     (inspection) => inspection.grade !== "Not graded" || inspection.score !== "Not reported",
   ) ?? history?.inspections[0];
+  const nearbyComparison = history?.nearbyComparison.status === "available" ? history.nearbyComparison : null;
+  const outsideADifference = nearbyComparison?.restaurantOutsideARate == null
+    ? null
+    : nearbyComparison.restaurantOutsideARate - nearbyComparison.nearbyOutsideARate;
+  const comparisonDirection = outsideADifference == null
+    ? null
+    : Math.abs(outsideADifference) < 0.05
+      ? "the same as"
+      : outsideADifference > 0
+        ? "higher than"
+        : "lower than";
 
   function retry() {
     setHistoryState("loading");
@@ -136,26 +147,39 @@ export default function RestaurantResultsPage() {
             <section className="nearby-comparison" aria-labelledby="nearby-comparison-heading">
               <div className="nearby-comparison-heading">
                 <p className="eyebrow">Nearby benchmark</p>
-                <h3 id="nearby-comparison-heading">How did this restaurant compare nearby?</h3>
-                <p>The comparison uses unique scored initial inspections from 2025, matching the period and score rules used in the data story.</p>
+                <h3 id="nearby-comparison-heading">How does this restaurant compare nearby?</h3>
+                <p>Comparing scored initial inspections from 2025. Scores from 0–13 fall in the A-grade range, and lower scores are better.</p>
               </div>
               {history.nearbyComparison.status === "available" ? (
                 <>
-                  <div className="nearby-metric-grid">
-                    <article>
-                      <span>THIS RESTAURANT</span>
-                      <strong>{formatMetric(history.nearbyComparison.restaurantAverageScore)}</strong>
-                      <small>Average 2025 initial-inspection score</small>
-                      <b>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} outside the A-grade range</b>
-                    </article>
-                    <article>
-                      <span>WITHIN {history.nearbyComparison.radiusMeters} METERS</span>
-                      <strong>{formatMetric(history.nearbyComparison.nearbyAverageScore)}</strong>
-                      <small>Average nearby initial-inspection score</small>
-                      <b>{formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} outside the A-grade range</b>
-                    </article>
+                  {outsideADifference !== null && comparisonDirection && (
+                    <div className={`nearby-takeaway ${outsideADifference > 0.05 ? "is-higher" : outsideADifference < -0.05 ? "is-lower" : "is-even"}`}>
+                      <span>THE MAIN TAKEAWAY</span>
+                      <strong>{Math.abs(outsideADifference).toFixed(1)} percentage points {comparisonDirection} nearby restaurants.</strong>
+                      <p>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} of this restaurant&apos;s scored initial inspections fell outside the A-grade range, compared with {formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} nearby.</p>
+                    </div>
+                  )}
+
+                  <div className="nearby-rate-chart" role="img" aria-label={`${formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} of this restaurant's scored 2025 initial inspections and ${formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} of nearby scored initial inspections fell outside the A-grade range.`}>
+                    <h4>Inspections outside the A-grade range</h4>
+                    <div className="nearby-rate-row restaurant-rate">
+                      <span>This restaurant</span>
+                      <div><i style={{ width: `${history.nearbyComparison.restaurantOutsideARate ?? 0}%` }} /></div>
+                      <strong>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")}</strong>
+                    </div>
+                    <div className="nearby-rate-row neighborhood-rate">
+                      <span>Nearby restaurants</span>
+                      <div><i style={{ width: `${history.nearbyComparison.nearbyOutsideARate}%` }} /></div>
+                      <strong>{formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")}</strong>
+                    </div>
                   </div>
-                  <p className="nearby-method">Nearby benchmark: {history.nearbyComparison.nearbyInspectionCount} scored initial inspection{history.nearbyComparison.nearbyInspectionCount === 1 ? "" : "s"} across {history.nearbyComparison.nearbyRestaurantCount} restaurant{history.nearbyComparison.nearbyRestaurantCount === 1 ? "" : "s"}. This is context, not a rating or forecast of current conditions.</p>
+
+                  <div className="nearby-supporting-metrics">
+                    <div><span>THIS RESTAURANT&apos;S AVERAGE SCORE</span><strong>{formatMetric(history.nearbyComparison.restaurantAverageScore)}</strong></div>
+                    <div><span>NEARBY AVERAGE SCORE</span><strong>{formatMetric(history.nearbyComparison.nearbyAverageScore)}</strong></div>
+                  </div>
+                  <p className="nearby-sample"><strong>What was compared:</strong> this restaurant&apos;s {history.nearbyComparison.restaurantInspectionCount} scored initial inspection{history.nearbyComparison.restaurantInspectionCount === 1 ? "" : "s"} and {history.nearbyComparison.nearbyInspectionCount} nearby inspection{history.nearbyComparison.nearbyInspectionCount === 1 ? "" : "s"} across {history.nearbyComparison.nearbyRestaurantCount} restaurant{history.nearbyComparison.nearbyRestaurantCount === 1 ? "" : "s"} within {history.nearbyComparison.radiusMeters} meters.</p>
+                  <p className="nearby-method">A small number of inspections can produce a large percentage change. This is historical context, not a current rating or forecast.</p>
                 </>
               ) : (
                 <div className="nearby-unavailable"><strong>Nearby comparison unavailable</strong><span>{history.nearbyComparison.reason}</span></div>
