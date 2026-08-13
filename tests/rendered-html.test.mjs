@@ -94,7 +94,7 @@ test("supports the final CTA with scored inspection evidence", async () => {
   assert.match(pestData, /inspection\.score >= 14/);
 });
 
-test("calculates a real 2025 benchmark for restaurants within 500 meters", async () => {
+test("compares one latest initial inspection per nearby restaurant", async () => {
   const [historyRoute, resultsPage] = await Promise.all([
     readFile(new URL("../app/api/restaurants/[camis]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8"),
@@ -102,13 +102,33 @@ test("calculates a real 2025 benchmark for restaurants within 500 meters", async
 
   assert.match(historyRoute, /within_circle\(location/);
   assert.match(historyRoute, /radiusMeters = 500/);
-  assert.match(historyRoute, /2025-01-01T00:00:00\.000/);
+  assert.match(historyRoute, /latestInspectionPerRestaurant/);
+  assert.match(historyRoute, /medianScore/);
+  assert.match(historyRoute, /comparisonYear/);
+  assert.match(historyRoute, /targetInspection/);
   assert.match(historyRoute, /nearbyRestaurantCount/);
+  assert.doesNotMatch(historyRoute, /averageScore/);
+  assert.doesNotMatch(historyRoute, /outsideARate/);
   assert.match(resultsPage, /How does this restaurant compare nearby\?/);
-  assert.match(resultsPage, /outsideADifference/);
-  assert.match(resultsPage, /percentage points \{comparisonDirection\} nearby restaurants/);
-  assert.match(resultsPage, /lower scores are better/);
-  assert.match(resultsPage, /A small number of inspections can produce a large percentage change/);
+  assert.match(resultsPage, /latest initial score was/);
+  assert.match(resultsPage, /Typical nearby score/);
+  assert.match(resultsPage, /Lower inspection scores are better/);
+  assert.match(resultsPage, /one latest scored initial inspection/);
+  assert.match(resultsPage, /Reinspections remain visible in the timeline but are not included/);
+});
+
+test("separates the latest result, pest summary, and full inspection timeline", async () => {
+  const resultsPage = await readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8");
+
+  assert.match(resultsPage, /LATEST OFFICIAL RESULT · NYC OPEN DATA/);
+  assert.match(resultsPage, /latestInspection = history\?\.inspections\.find/);
+  assert.match(resultsPage, /Pest findings appeared in/);
+  assert.match(resultsPage, /pestInitialCount/);
+  assert.match(resultsPage, /pestReinspectionCount/);
+  assert.match(resultsPage, /How the record changed over time/);
+  assert.match(resultsPage, /timelineInspections\.map/);
+  assert.match(resultsPage, /Score \{scoreChange < 0 \? "decreased" : "increased"\}/);
+  assert.match(resultsPage, /A later result is not automatically the result of the preceding reinspection/);
 });
 
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {

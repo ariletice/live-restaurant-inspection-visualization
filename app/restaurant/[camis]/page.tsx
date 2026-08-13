@@ -26,6 +26,24 @@ function formatMetric(value: number | null, suffix = "") {
   return value === null ? "Not available" : `${value.toFixed(1)}${suffix}`;
 }
 
+function numericScore(value: string) {
+  const score = Number(value);
+  return Number.isFinite(score) ? score : null;
+}
+
+function scoreRange(score: number | null) {
+  if (score === null) return "Score range unavailable";
+  if (score <= 13) return "A-grade score range (0–13)";
+  if (score <= 27) return "B-grade score range (14–27)";
+  return "C-grade score range (28 or higher)";
+}
+
+function inspectionKind(type: string) {
+  if (type.includes("Re-inspection")) return "Reinspection";
+  if (type.includes("Initial Inspection")) return "Initial inspection";
+  return "Other inspection";
+}
+
 export default function RestaurantResultsPage() {
   const { camis } = useParams<{ camis: string }>();
   const [historyState, setHistoryState] = useState<HistoryState>("loading");
@@ -58,20 +76,21 @@ export default function RestaurantResultsPage() {
     () => history?.inspections.filter((inspection) => inspection.pestViolations.length > 0) ?? [],
     [history],
   );
-  const latestInspection = history?.inspections.find(
-    (inspection) => inspection.grade !== "Not graded" || inspection.score !== "Not reported",
-  ) ?? history?.inspections[0];
+  const timelineInspections = useMemo(() => [...(history?.inspections ?? [])].reverse(), [history]);
+  const latestInspection = history?.inspections.find((inspection) => numericScore(inspection.score) !== null) ?? history?.inspections[0];
+  const latestScore = latestInspection ? numericScore(latestInspection.score) : null;
+  const pestInitialCount = pestInspections.filter((inspection) => inspection.type.includes("Initial Inspection")).length;
+  const pestReinspectionCount = pestInspections.filter((inspection) => inspection.type.includes("Re-inspection")).length;
+  const pestOtherCount = pestInspections.length - pestInitialCount - pestReinspectionCount;
+  const pestDates = pestInspections.map((inspection) => inspection.date).sort();
+  const pestLabels = [...new Set(pestInspections.flatMap((inspection) => inspection.pestViolations.map((violation) => pestGuidance[violation.code].label)))];
   const nearbyComparison = history?.nearbyComparison.status === "available" ? history.nearbyComparison : null;
-  const outsideADifference = nearbyComparison?.restaurantOutsideARate == null
-    ? null
-    : nearbyComparison.restaurantOutsideARate - nearbyComparison.nearbyOutsideARate;
-  const comparisonDirection = outsideADifference == null
-    ? null
-    : Math.abs(outsideADifference) < 0.05
-      ? "the same as"
-      : outsideADifference > 0
-        ? "higher than"
-        : "lower than";
+  const nearbyScoreDifference = nearbyComparison
+    ? nearbyComparison.targetInspection.score - nearbyComparison.nearbyMedianScore
+    : null;
+  const comparisonScaleMax = nearbyComparison
+    ? Math.max(40, Math.ceil(Math.max(nearbyComparison.targetInspection.score, nearbyComparison.nearbyMedianScore) / 10) * 10)
+    : 40;
 
   function retry() {
     setHistoryState("loading");
@@ -98,19 +117,24 @@ export default function RestaurantResultsPage() {
         {historyState === "success" && history && (
           <div className="history-content">
             <article className="restaurant-snapshot">
-              <p className="record-label">OFFICIAL NYC OPEN DATA</p>
+              <p className="record-label">LATEST OFFICIAL RESULT · NYC OPEN DATA</p>
               <h3>{history.restaurant.name}</h3>
               <p>{address(history.restaurant)}</p>
-              <dl>
-                <div><dt>Latest inspection</dt><dd>{latestInspection ? formatDate(latestInspection.date) : "Not available"}</dd></div>
-                <div><dt>Latest grade</dt><dd>{latestInspection?.grade || "Not available"}</dd></div>
-                <div><dt>Latest score</dt><dd>{latestInspection?.score || "Not available"}</dd></div>
-                <div><dt>Pest-related inspections found</dt><dd>{pestInspections.length}</dd></div>
-              </dl>
+              {latestInspection && latestScore !== null ? (
+                <>
+                  <div className="latest-result-score"><span>SCORE</span><strong>{latestScore}</strong><b>{latestInspection.grade === "Not graded" ? "Grade not reported" : `Grade ${latestInspection.grade}`}</b></div>
+                  <p className="latest-score-range">{scoreRange(latestScore)}</p>
+                  <dl>
+                    <div><dt>Inspection date</dt><dd>{formatDate(latestInspection.date)}</dd></div>
+                    <div><dt>Inspection type</dt><dd>{inspectionKind(latestInspection.type)}</dd></div>
+                    <div><dt>Official outcome</dt><dd>{latestInspection.action}</dd></div>
+                  </dl>
+                </>
+              ) : <p className="latest-score-unavailable">No scored inspection is available for this restaurant.</p>}
               <a href={history.sourceUrl} target="_blank" rel="noreferrer">View the source records ↗</a>
             </article>
 
-            <div className="pest-history">
+            <div className="inspection-story">
               <div className="interpretation-key">
                 <span><i className="official-dot" />Official NYC record</span>
                 <span><i className="product-dot" />Summary</span>
@@ -124,62 +148,85 @@ export default function RestaurantResultsPage() {
                   <a href="https://www.nyc.gov/site/doh/business/food-operators/operating-a-restaurant.page" target="_blank" rel="noreferrer">View preventative NYC pest guidance ↗</a>
                 </div>
               ) : (
-                <>
-                  <p className="history-caution">These are <strong>historical inspection findings</strong>, not a statement about the restaurant&apos;s current condition.</p>
-                  {pestInspections.map((inspection) => (
-                    <article className="inspection-card" key={inspection.key}>
-                      <header><div><span>INSPECTION RECORD</span><strong>{formatDate(inspection.date)}</strong></div><small>{inspection.type}</small></header>
-                      {inspection.pestViolations.map((violation) => {
-                        const guidance = pestGuidance[violation.code];
-                        return (
-                          <div className="violation-result" key={violation.code}>
-                            <div className="official-record"><span>Official finding · Code {violation.code}</span><h3>{guidance.label}</h3><p>{violation.description}</p></div>
-                            <div className="product-guidance"><span>What this means</span><p>{guidance.plainLanguage}</p><strong>Preventative next step</strong><p>{guidance.nextStep}</p></div>
-                          </div>
-                        );
-                      })}
-                    </article>
-                  ))}
-                </>
+                <section className="pest-history-summary" aria-labelledby="pest-history-summary-heading">
+                  <p className="eyebrow">Pest history</p>
+                  <h3 id="pest-history-summary-heading">Pest findings appeared in {pestInspections.length} inspection{pestInspections.length === 1 ? "" : "s"}.</h3>
+                  <p>Recorded between {formatDate(pestDates[0])} and {formatDate(pestDates[pestDates.length - 1])}: {pestInitialCount} initial inspection{pestInitialCount === 1 ? "" : "s"}, {pestReinspectionCount} reinspection{pestReinspectionCount === 1 ? "" : "s"}{pestOtherCount ? `, and ${pestOtherCount} other inspection${pestOtherCount === 1 ? "" : "s"}` : ""}.</p>
+                  <div className="pest-history-labels">{pestLabels.map((label) => <span key={label}>{label}</span>)}</div>
+                  <p className="history-caution">These are historical inspection findings, not a statement about the restaurant&apos;s current condition.</p>
+                </section>
               )}
+
+              <section className="inspection-timeline" aria-labelledby="inspection-timeline-heading">
+                <div className="timeline-heading"><p className="eyebrow">Inspection timeline</p><h3 id="inspection-timeline-heading">How the record changed over time</h3><p>Every available inspection is shown in date order. A later result is not automatically the result of the preceding reinspection.</p></div>
+                <ol>
+                  {timelineInspections.map((inspection, index) => {
+                    const score = numericScore(inspection.score);
+                    const previousScore = index > 0 ? numericScore(timelineInspections[index - 1].score) : null;
+                    const scoreChange = score !== null && previousScore !== null ? score - previousScore : null;
+                    return (
+                      <li className="timeline-event" key={inspection.key}>
+                        <div className="timeline-marker" aria-hidden="true" />
+                        <article>
+                          <header>
+                            <div><span>{inspectionKind(inspection.type)}</span><strong>{formatDate(inspection.date)}</strong></div>
+                            <div className="timeline-score"><span>{score === null ? "Score unavailable" : `Score ${score}`}</span><b>{inspection.grade === "Not graded" ? "Grade not reported" : `Grade ${inspection.grade}`}</b></div>
+                          </header>
+                          <p className="timeline-range">{scoreRange(score)} · {inspection.action}</p>
+                          {scoreChange !== null && scoreChange !== 0 && (
+                            <p className={`score-change ${scoreChange < 0 ? "score-lower" : "score-higher"}`}>Score {scoreChange < 0 ? "decreased" : "increased"} by {Math.abs(scoreChange)} points from the previous available inspection. Lower scores are better.</p>
+                          )}
+                          {inspection.pestViolations.length ? (
+                            <div className="timeline-pest-findings">
+                              {inspection.pestViolations.map((violation) => {
+                                const guidance = pestGuidance[violation.code];
+                                return <div key={violation.code}><span>PEST FINDING · CODE {violation.code}</span><strong>{guidance.label}</strong><p>{violation.description}</p><small><b>Preventative next step:</b> {guidance.nextStep}</small></div>;
+                              })}
+                            </div>
+                          ) : <p className="no-timeline-pest">No critical rat, mouse, roach, or fly violation was recorded for this inspection.</p>}
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
             </div>
 
             <section className="nearby-comparison" aria-labelledby="nearby-comparison-heading">
               <div className="nearby-comparison-heading">
                 <p className="eyebrow">Nearby benchmark</p>
                 <h3 id="nearby-comparison-heading">How does this restaurant compare nearby?</h3>
-                <p>Comparing scored initial inspections from 2025. Scores from 0–13 fall in the A-grade range, and lower scores are better.</p>
+                <p>Comparing this restaurant&apos;s latest scored initial inspection with one latest scored initial inspection per nearby restaurant from the same year.</p>
               </div>
               {history.nearbyComparison.status === "available" ? (
                 <>
-                  {outsideADifference !== null && comparisonDirection && (
-                    <div className={`nearby-takeaway ${outsideADifference > 0.05 ? "is-higher" : outsideADifference < -0.05 ? "is-lower" : "is-even"}`}>
-                      <span>THE MAIN TAKEAWAY</span>
-                      <strong>{Math.abs(outsideADifference).toFixed(1)} percentage points {comparisonDirection} nearby restaurants.</strong>
-                      <p>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} of this restaurant&apos;s scored initial inspections fell outside the A-grade range, compared with {formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} nearby.</p>
-                    </div>
-                  )}
-
-                  <div className="nearby-rate-chart" role="img" aria-label={`${formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")} of this restaurant's scored 2025 initial inspections and ${formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")} of nearby scored initial inspections fell outside the A-grade range.`}>
-                    <h4>Inspections outside the A-grade range</h4>
-                    <div className="nearby-rate-row restaurant-rate">
-                      <span>This restaurant</span>
-                      <div><i style={{ width: `${history.nearbyComparison.restaurantOutsideARate ?? 0}%` }} /></div>
-                      <strong>{formatMetric(history.nearbyComparison.restaurantOutsideARate, "%")}</strong>
-                    </div>
-                    <div className="nearby-rate-row neighborhood-rate">
-                      <span>Nearby restaurants</span>
-                      <div><i style={{ width: `${history.nearbyComparison.nearbyOutsideARate}%` }} /></div>
-                      <strong>{formatMetric(history.nearbyComparison.nearbyOutsideARate, "%")}</strong>
-                    </div>
+                  <div className={`nearby-takeaway ${nearbyScoreDifference !== null && nearbyScoreDifference < 0 ? "is-lower" : nearbyScoreDifference && nearbyScoreDifference > 0 ? "is-higher" : "is-even"}`}>
+                    <span>THE MAIN TAKEAWAY</span>
+                    <strong>{nearbyScoreDifference === 0 ? "This restaurant matched the typical nearby score." : `This restaurant’s latest initial score was ${Math.abs(nearbyScoreDifference ?? 0).toFixed(1)} points ${nearbyScoreDifference !== null && nearbyScoreDifference < 0 ? "lower" : "higher"} than the typical nearby score.`}</strong>
+                    <p>Lower inspection scores are better. “Typical nearby score” means the median—the middle score after nearby results are placed in order.</p>
                   </div>
 
-                  <div className="nearby-supporting-metrics">
-                    <div><span>THIS RESTAURANT&apos;S AVERAGE SCORE</span><strong>{formatMetric(history.nearbyComparison.restaurantAverageScore)}</strong></div>
-                    <div><span>NEARBY AVERAGE SCORE</span><strong>{formatMetric(history.nearbyComparison.nearbyAverageScore)}</strong></div>
+                  <div className="nearby-score-cards">
+                    <article><span>THIS RESTAURANT&apos;S LATEST INITIAL SCORE</span><strong>{history.nearbyComparison.targetInspection.score}</strong><small>{formatDate(history.nearbyComparison.targetInspection.date)} · {scoreRange(history.nearbyComparison.targetInspection.score)}</small></article>
+                    <article><span>TYPICAL NEARBY SCORE</span><strong>{formatMetric(history.nearbyComparison.nearbyMedianScore)}</strong><small>Median of {history.nearbyComparison.nearbyRestaurantCount} nearby restaurants</small></article>
                   </div>
-                  <p className="nearby-sample"><strong>What was compared:</strong> this restaurant&apos;s {history.nearbyComparison.restaurantInspectionCount} scored initial inspection{history.nearbyComparison.restaurantInspectionCount === 1 ? "" : "s"} and {history.nearbyComparison.nearbyInspectionCount} nearby inspection{history.nearbyComparison.nearbyInspectionCount === 1 ? "" : "s"} across {history.nearbyComparison.nearbyRestaurantCount} restaurant{history.nearbyComparison.nearbyRestaurantCount === 1 ? "" : "s"} within {history.nearbyComparison.radiusMeters} meters.</p>
-                  <p className="nearby-method">A small number of inspections can produce a large percentage change. This is historical context, not a current rating or forecast.</p>
+
+                  <div className="nearby-score-scale" role="img" aria-label={`This restaurant scored ${history.nearbyComparison.targetInspection.score}. The typical score among ${history.nearbyComparison.nearbyRestaurantCount} nearby restaurants was ${formatMetric(history.nearbyComparison.nearbyMedianScore)}. Lower scores are better.`}>
+                    <div className="score-scale-labels"><span>A range · 0–13</span><span>B range · 14–27</span><span>C range · 28+</span></div>
+                    <div className="score-scale-track">
+                      <i className="score-band score-band-a" style={{ width: `${(14 / comparisonScaleMax) * 100}%` }} />
+                      <i className="score-band score-band-b" style={{ left: `${(14 / comparisonScaleMax) * 100}%`, width: `${(14 / comparisonScaleMax) * 100}%` }} />
+                      <i className="score-band score-band-c" style={{ left: `${(28 / comparisonScaleMax) * 100}%`, width: `${((comparisonScaleMax - 28) / comparisonScaleMax) * 100}%` }} />
+                      <span className="score-marker target-marker" style={{ left: `${Math.min(100, (history.nearbyComparison.targetInspection.score / comparisonScaleMax) * 100)}%` }}><b>This restaurant</b></span>
+                      <span className="score-marker nearby-marker" style={{ left: `${Math.min(100, (history.nearbyComparison.nearbyMedianScore / comparisonScaleMax) * 100)}%` }}><b>Nearby median</b></span>
+                    </div>
+                    <div className="score-scale-axis"><span>0</span><span>{comparisonScaleMax}+</span></div>
+                  </div>
+
+                  <p className="nearby-a-range"><strong>{history.nearbyComparison.nearbyARangeCount} of {history.nearbyComparison.nearbyRestaurantCount}</strong> nearby restaurants ({formatMetric(history.nearbyComparison.nearbyARangeRate, "%")}) had a latest initial score in the A-grade range.</p>
+                  <p className="nearby-sample"><strong>What was compared:</strong> one latest scored initial inspection from {history.nearbyComparison.comparisonYear} for each restaurant within {history.nearbyComparison.radiusMeters} meters.</p>
+                  {history.nearbyComparison.nearbyRestaurantCount < 10 && <p className="nearby-limited-sample">Limited nearby sample: fewer than 10 restaurants were available, so interpret this comparison cautiously.</p>}
+                  <p className="nearby-method">This is historical context, not a current rating or forecast. Reinspections remain visible in the timeline but are not included in this comparison.</p>
                 </>
               ) : (
                 <div className="nearby-unavailable"><strong>Nearby comparison unavailable</strong><span>{history.nearbyComparison.reason}</span></div>

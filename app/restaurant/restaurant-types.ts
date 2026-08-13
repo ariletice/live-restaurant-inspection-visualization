@@ -28,14 +28,17 @@ export type RestaurantHistory = {
   nearbyComparison: {
     status: "available";
     radiusMeters: number;
-    periodLabel: string;
-    restaurantInspectionCount: number;
-    restaurantAverageScore: number | null;
-    restaurantOutsideARate: number | null;
+    comparisonYear: number;
+    targetInspection: {
+      date: string;
+      type: string;
+      score: number;
+      grade: string;
+    };
     nearbyRestaurantCount: number;
-    nearbyInspectionCount: number;
-    nearbyAverageScore: number;
-    nearbyOutsideARate: number;
+    nearbyMedianScore: number;
+    nearbyARangeCount: number;
+    nearbyARangeRate: number;
   } | {
     status: "unavailable";
     reason: string;
