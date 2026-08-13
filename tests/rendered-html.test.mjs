@@ -127,8 +127,27 @@ test("separates the latest result, pest summary, and full inspection timeline", 
   assert.match(resultsPage, /pestReinspectionCount/);
   assert.match(resultsPage, /How the record changed over time/);
   assert.match(resultsPage, /timelineInspections\.map/);
-  assert.match(resultsPage, /Score \{scoreChange < 0 \? "decreased" : "increased"\}/);
+  assert.match(resultsPage, /this score \{scoreChange < 0 \? "decreased" : "increased"\}/);
   assert.match(resultsPage, /A later result is not automatically the result of the preceding reinspection/);
+});
+
+test("renders inspection history as a compact accessible timeline", async () => {
+  const [resultsPage, styles] = await Promise.all([
+    readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(resultsPage, /<details className=\{`timeline-disclosure/);
+  assert.match(resultsPage, /const inspectionOpen = expandedInspections\[inspection\.key\] \?\? isLatest/);
+  assert.match(resultsPage, /open=\{inspectionOpen\}/);
+  assert.match(resultsPage, /event\.key === "Enter" \|\| event\.key === " "/);
+  assert.match(resultsPage, /timeline-year-label/);
+  assert.match(resultsPage, /Pest finding recorded/);
+  assert.match(resultsPage, /No critical pest finding/);
+  assert.match(resultsPage, /the sequence alone does not show what caused the change/);
+  assert.match(styles, /\.timeline-list::before/);
+  assert.match(styles, /\.timeline-disclosure summary:focus-visible/);
+  assert.doesNotMatch(styles, /\.timeline-event \{[^}]*border-left/);
 });
 
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {

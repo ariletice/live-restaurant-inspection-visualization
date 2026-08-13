@@ -50,6 +50,7 @@ export default function RestaurantResultsPage() {
   const [history, setHistory] = useState<RestaurantHistory | null>(null);
   const [historyMessage, setHistoryMessage] = useState("");
   const [requestVersion, setRequestVersion] = useState(0);
+  const [expandedInspections, setExpandedInspections] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let active = true;
@@ -96,6 +97,10 @@ export default function RestaurantResultsPage() {
     setHistoryState("loading");
     setHistoryMessage("");
     setRequestVersion((current) => current + 1);
+  }
+
+  function setInspectionOpen(inspectionKey: string, open: boolean) {
+    setExpandedInspections((current) => ({ ...current, [inspectionKey]: open }));
   }
 
   return (
@@ -159,32 +164,60 @@ export default function RestaurantResultsPage() {
 
               <section className="inspection-timeline" aria-labelledby="inspection-timeline-heading">
                 <div className="timeline-heading"><p className="eyebrow">Inspection timeline</p><h3 id="inspection-timeline-heading">How the record changed over time</h3><p>Every available inspection is shown in date order. A later result is not automatically the result of the preceding reinspection.</p></div>
-                <ol>
+                <ol className="timeline-list">
                   {timelineInspections.map((inspection, index) => {
                     const score = numericScore(inspection.score);
                     const previousScore = index > 0 ? numericScore(timelineInspections[index - 1].score) : null;
                     const scoreChange = score !== null && previousScore !== null ? score - previousScore : null;
+                    const inspectionYear = new Date(inspection.date).getFullYear();
+                    const previousInspectionYear = index > 0 ? new Date(timelineInspections[index - 1].date).getFullYear() : null;
+                    const startsYear = inspectionYear !== previousInspectionYear;
+                    const isLatest = index === timelineInspections.length - 1;
+                    const hasPestFinding = inspection.pestViolations.length > 0;
+                    const isReinspection = inspection.type.includes("Re-inspection");
+                    const inspectionOpen = expandedInspections[inspection.key] ?? isLatest;
                     return (
                       <li className="timeline-event" key={inspection.key}>
-                        <div className="timeline-marker" aria-hidden="true" />
-                        <article>
-                          <header>
-                            <div><span>{inspectionKind(inspection.type)}</span><strong>{formatDate(inspection.date)}</strong></div>
-                            <div className="timeline-score"><span>{score === null ? "Score unavailable" : `Score ${score}`}</span><b>{inspection.grade === "Not graded" ? "Grade not reported" : `Grade ${inspection.grade}`}</b></div>
-                          </header>
-                          <p className="timeline-range">{scoreRange(score)} · {inspection.action}</p>
-                          {scoreChange !== null && scoreChange !== 0 && (
-                            <p className={`score-change ${scoreChange < 0 ? "score-lower" : "score-higher"}`}>Score {scoreChange < 0 ? "decreased" : "increased"} by {Math.abs(scoreChange)} points from the previous available inspection. Lower scores are better.</p>
-                          )}
-                          {inspection.pestViolations.length ? (
-                            <div className="timeline-pest-findings">
-                              {inspection.pestViolations.map((violation) => {
-                                const guidance = pestGuidance[violation.code];
-                                return <div key={violation.code}><span>PEST FINDING · CODE {violation.code}</span><strong>{guidance.label}</strong><p>{violation.description}</p><small><b>Preventative next step:</b> {guidance.nextStep}</small></div>;
-                              })}
-                            </div>
-                          ) : <p className="no-timeline-pest">No critical rat, mouse, roach, or fly violation was recorded for this inspection.</p>}
-                        </article>
+                        {startsYear && <p className="timeline-year-label">{inspectionYear}</p>}
+                        <details className={`timeline-disclosure${isLatest ? " is-latest" : ""}`} open={inspectionOpen} onToggle={(event) => {
+                          if (event.currentTarget.open !== inspectionOpen) setInspectionOpen(inspection.key, event.currentTarget.open);
+                        }}>
+                          <summary onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setInspectionOpen(inspection.key, !inspectionOpen);
+                            }
+                          }}>
+                            <span className={`timeline-marker ${isReinspection ? "marker-reinspection" : "marker-initial"}${hasPestFinding ? " marker-pest" : ""}${isLatest ? " marker-latest" : ""}`} aria-hidden="true" />
+                            <span className="timeline-summary-main">
+                              <span className="timeline-event-type">{inspectionKind(inspection.type)}</span>
+                              <strong>{formatDate(inspection.date)}</strong>
+                              <span className="timeline-status-row">
+                                <span className={`timeline-pest-status ${hasPestFinding ? "has-pest" : "no-pest"}`}>{hasPestFinding ? "Pest finding recorded" : "No critical pest finding"}</span>
+                                {scoreChange !== null && scoreChange !== 0 && <span className={`timeline-change ${scoreChange < 0 ? "score-lower" : "score-higher"}`}>{scoreChange < 0 ? "↓" : "↑"} {Math.abs(scoreChange)} points · {scoreChange < 0 ? "lower score" : "higher score"}</span>}
+                              </span>
+                            </span>
+                            <span className="timeline-summary-score">
+                              {isLatest && <em>Latest result</em>}
+                              <b>{score === null ? "Score unavailable" : `Score ${score}`}</b>
+                              <small>{inspection.grade === "Not graded" ? "Grade not reported" : `Grade ${inspection.grade}`}</small>
+                            </span>
+                            <span className="timeline-toggle" aria-hidden="true"><i /> <b>Details</b></span>
+                          </summary>
+                          <div className="timeline-details">
+                            <p className="timeline-range"><b>Official outcome:</b> {inspection.action}</p>
+                            <p className="timeline-score-range"><b>Score range:</b> {scoreRange(score)}</p>
+                            {scoreChange !== null && scoreChange !== 0 && <p className="timeline-change-note">Compared with the previous available inspection, this score {scoreChange < 0 ? "decreased" : "increased"} by {Math.abs(scoreChange)} points. Lower scores are better; the sequence alone does not show what caused the change.</p>}
+                            {hasPestFinding ? (
+                              <div className="timeline-pest-findings">
+                                {inspection.pestViolations.map((violation) => {
+                                  const guidance = pestGuidance[violation.code];
+                                  return <div key={violation.code}><span>PEST FINDING · CODE {violation.code}</span><strong>{guidance.label}</strong><p>{violation.description}</p><small><b>Preventative next step:</b> {guidance.nextStep}</small></div>;
+                                })}
+                              </div>
+                            ) : <p className="no-timeline-pest">No critical rat, mouse, roach, or fly violation was recorded for this inspection.</p>}
+                          </div>
+                        </details>
                       </li>
                     );
                   })}
