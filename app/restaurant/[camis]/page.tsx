@@ -22,6 +22,14 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function compactDate(value: string) {
+  const date = new Date(value);
+  return {
+    month: new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(date).toUpperCase(),
+    day: new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "UTC" }).format(date),
+  };
+}
+
 function formatMetric(value: number | null, suffix = "") {
   return value === null ? "Not available" : `${value.toFixed(1)}${suffix}`;
 }
@@ -174,50 +182,57 @@ export default function RestaurantResultsPage() {
                     const startsYear = inspectionYear !== previousInspectionYear;
                     const isLatest = index === timelineInspections.length - 1;
                     const hasPestFinding = inspection.pestViolations.length > 0;
-                    const isReinspection = inspection.type.includes("Re-inspection");
                     const inspectionOpen = expandedInspections[inspection.key] ?? isLatest;
+                    const inspectionDate = compactDate(inspection.date);
+                    const inspectionPestLabels = [...new Set(inspection.pestViolations.map((violation) => pestGuidance[violation.code].label))];
+                    const findingHeadline = hasPestFinding ? inspectionPestLabels.join(" and ") : "No critical pest finding";
                     return (
                       <li className="timeline-event" key={inspection.key}>
                         {startsYear && <p className="timeline-year-label">{inspectionYear}</p>}
-                        <details className={`timeline-disclosure${isLatest ? " is-latest" : ""}`} open={inspectionOpen} onToggle={(event) => {
-                          if (event.currentTarget.open !== inspectionOpen) setInspectionOpen(inspection.key, event.currentTarget.open);
-                        }}>
-                          <summary onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setInspectionOpen(inspection.key, !inspectionOpen);
-                            }
+                        <div className="timeline-entry">
+                          <time className="timeline-date-anchor" dateTime={inspection.date} aria-label={formatDate(inspection.date)}>
+                            <span>{inspectionDate.month}</span>
+                            <strong>{inspectionDate.day}</strong>
+                          </time>
+                          <details className={`timeline-disclosure${isLatest ? " is-latest" : ""}`} open={inspectionOpen} onToggle={(event) => {
+                            if (event.currentTarget.open !== inspectionOpen) setInspectionOpen(inspection.key, event.currentTarget.open);
                           }}>
-                            <span className={`timeline-marker ${isReinspection ? "marker-reinspection" : "marker-initial"}${hasPestFinding ? " marker-pest" : ""}${isLatest ? " marker-latest" : ""}`} aria-hidden="true" />
-                            <span className="timeline-summary-main">
-                              <span className="timeline-event-type">{inspectionKind(inspection.type)}</span>
-                              <strong>{formatDate(inspection.date)}</strong>
-                              <span className="timeline-status-row">
-                                <span className={`timeline-pest-status ${hasPestFinding ? "has-pest" : "no-pest"}`}>{hasPestFinding ? "Pest finding recorded" : "No critical pest finding"}</span>
-                                {scoreChange !== null && scoreChange !== 0 && <span className={`timeline-change ${scoreChange < 0 ? "score-lower" : "score-higher"}`}>{scoreChange < 0 ? "↓" : "↑"} {Math.abs(scoreChange)} points · {scoreChange < 0 ? "lower score" : "higher score"}</span>}
+                            <summary onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                setInspectionOpen(inspection.key, !inspectionOpen);
+                              }
+                            }}>
+                              <span className="timeline-summary-main">
+                                <span className="timeline-state-row">
+                                  <b>{inspectionKind(inspection.type)}</b>
+                                  {isLatest && <em>Latest result</em>}
+                                </span>
+                                <strong>{findingHeadline}</strong>
+                                <span className="timeline-status-row">
+                                  <span>{score === null ? "Score unavailable" : `Score ${score}`}</span>
+                                  <span>{inspection.grade === "Not graded" ? "Grade not reported" : `Grade ${inspection.grade}`}</span>
+                                  {scoreChange !== null && scoreChange !== 0 && <span className={`timeline-change ${scoreChange < 0 ? "score-lower" : "score-higher"}`}>{scoreChange < 0 ? "↓" : "↑"} {Math.abs(scoreChange)} points · {scoreChange < 0 ? "lower score" : "higher score"}</span>}
+                                </span>
                               </span>
-                            </span>
-                            <span className="timeline-summary-score">
-                              {isLatest && <em>Latest result</em>}
-                              <b>{score === null ? "Score unavailable" : `Score ${score}`}</b>
-                              <small>{inspection.grade === "Not graded" ? "Grade not reported" : `Grade ${inspection.grade}`}</small>
-                            </span>
-                            <span className="timeline-toggle" aria-hidden="true"><i /> <b>Details</b></span>
-                          </summary>
-                          <div className="timeline-details">
-                            <p className="timeline-range"><b>Official outcome:</b> {inspection.action}</p>
-                            <p className="timeline-score-range"><b>Score range:</b> {scoreRange(score)}</p>
-                            {scoreChange !== null && scoreChange !== 0 && <p className="timeline-change-note">Compared with the previous available inspection, this score {scoreChange < 0 ? "decreased" : "increased"} by {Math.abs(scoreChange)} points. Lower scores are better; the sequence alone does not show what caused the change.</p>}
-                            {hasPestFinding ? (
-                              <div className="timeline-pest-findings">
-                                {inspection.pestViolations.map((violation) => {
-                                  const guidance = pestGuidance[violation.code];
-                                  return <div key={violation.code}><span>PEST FINDING · CODE {violation.code}</span><strong>{guidance.label}</strong><p>{violation.description}</p><small><b>Preventative next step:</b> {guidance.nextStep}</small></div>;
-                                })}
-                              </div>
-                            ) : <p className="no-timeline-pest">No critical rat, mouse, roach, or fly violation was recorded for this inspection.</p>}
-                          </div>
-                        </details>
+                              <span className="timeline-toggle" aria-hidden="true"><i /> <b>Details</b></span>
+                            </summary>
+                            <div className="timeline-details">
+                              <p className="timeline-range"><b>Inspection date:</b> {formatDate(inspection.date)}</p>
+                              <p className="timeline-range"><b>Official outcome:</b> {inspection.action}</p>
+                              <p className="timeline-score-range"><b>Score range:</b> {scoreRange(score)}</p>
+                              {scoreChange !== null && scoreChange !== 0 && <p className="timeline-change-note">Compared with the previous available inspection, this score {scoreChange < 0 ? "decreased" : "increased"} by {Math.abs(scoreChange)} points. Lower scores are better; the sequence alone does not show what caused the change.</p>}
+                              {hasPestFinding ? (
+                                <div className="timeline-pest-findings">
+                                  {inspection.pestViolations.map((violation) => {
+                                    const guidance = pestGuidance[violation.code];
+                                    return <div key={violation.code}><span>PEST FINDING · CODE {violation.code}</span><strong>{guidance.label}</strong><p>{violation.description}</p><small><b>Preventative next step:</b> {guidance.nextStep}</small></div>;
+                                  })}
+                                </div>
+                              ) : <p className="no-timeline-pest">No critical rat, mouse, roach, or fly violation was recorded for this inspection.</p>}
+                            </div>
+                          </details>
+                        </div>
                       </li>
                     );
                   })}

@@ -142,12 +142,14 @@ test("renders inspection history as a compact accessible timeline", async () => 
   assert.match(resultsPage, /open=\{inspectionOpen\}/);
   assert.match(resultsPage, /event\.key === "Enter" \|\| event\.key === " "/);
   assert.match(resultsPage, /timeline-year-label/);
-  assert.match(resultsPage, /Pest finding recorded/);
-  assert.match(resultsPage, /No critical pest finding/);
+  assert.match(resultsPage, /compactDate\(inspection\.date\)/);
+  assert.match(resultsPage, /findingHeadline/);
+  assert.match(resultsPage, /inspectionKind\(inspection\.type\)/);
   assert.match(resultsPage, /the sequence alone does not show what caused the change/);
-  assert.match(styles, /\.timeline-list::before/);
+  assert.match(styles, /\.timeline-entry::before/);
+  assert.match(styles, /\.timeline-date-anchor strong/);
   assert.match(styles, /\.timeline-disclosure summary:focus-visible/);
-  assert.doesNotMatch(styles, /\.timeline-event \{[^}]*border-left/);
+  assert.doesNotMatch(styles, /\.timeline-marker/);
 });
 
 test("presents the seasonal prediction as an accessible multiple-choice question", async () => {
