@@ -46,6 +46,33 @@ export type RestaurantHistory = {
   sourceUrl: string;
 };
 
+export type RegisteredPestProvider = {
+  businessName: string;
+  registrationNumber: string;
+  registrationStatus: "Listed in current NYS registration data";
+  categoryCode: "7F";
+  categoryDescription: "Food Processing";
+  expirationDate: string;
+  city: string;
+  state: string;
+  zipcode: string;
+  approximateDistanceMiles: number;
+  googleMapsSearchUrl: string;
+  officialVerificationUrl: string;
+};
+
+export type ProviderSearchResponse = {
+  restaurant: RestaurantMatch;
+  radiusMiles: 5 | 15;
+  providers: RegisteredPestProvider[];
+  orderingExplanation: string;
+  source: {
+    name: string;
+    url: string;
+    retrievedAt: string;
+  };
+};
+
 export const pestGuidance: Record<PestViolation["code"], {
   label: string;
   plainLanguage: string;

@@ -117,6 +117,27 @@ test("compares one latest initial inspection per nearby restaurant", async () =>
   assert.match(resultsPage, /Reinspections remain visible in the timeline but are not included/);
 });
 
+test("builds provider results from current Category 7F state registrations", async () => {
+  const [providerRoute, providerTypes] = await Promise.all([
+    readFile(new URL("../app/api/restaurants/[camis]/providers/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/restaurant/restaurant-types.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(providerRoute, /data\.ny\.gov\/resource\/h8u2-6ejg\.json/);
+  assert.match(providerRoute, /pesticide_category_code='7f'/);
+  assert.match(providerRoute, /registration_expiration_date >=/);
+  assert.match(providerRoute, /within_circle\(location_1/);
+  assert.match(providerRoute, /milesBetween/);
+  assert.match(providerRoute, /providersByRegistration/);
+  assert.match(providerRoute, /\.sort\(\(providerA, providerB\) => providerA\.approximateDistanceMiles/);
+  assert.match(providerRoute, /\.slice\(0, 10\)/);
+  assert.match(providerRoute, /radiusValue !== "5" && radiusValue !== "15"/);
+  assert.match(providerRoute, /www\.google\.com\/maps\/search/);
+  assert.match(providerTypes, /registrationStatus: "Listed in current NYS registration data"/);
+  assert.match(providerTypes, /categoryCode: "7F"/);
+  assert.match(providerTypes, /approximateDistanceMiles: number/);
+});
+
 test("separates the latest result, pest summary, and full inspection timeline", async () => {
   const resultsPage = await readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8");
 
