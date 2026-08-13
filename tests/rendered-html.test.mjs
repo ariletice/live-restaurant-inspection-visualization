@@ -213,6 +213,19 @@ test("connects every restaurant record to registered professional help", async (
   assert.match(resultsPage, /Find Licensed Pest-Control Help/);
 });
 
+test("connects restaurant pest history to a non-predictive prevention calendar", async () => {
+  const resultsPage = await readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8");
+  assert.match(resultsPage, /Historical prevention calendar/);
+  assert.match(resultsPage, /pestHistoryCounts/);
+  assert.match(resultsPage, /calendarPests/);
+  assert.match(resultsPage, /fallbackPestAnalysis\.monthly\[pest\]/);
+  assert.match(resultsPage, /const reminderMonthIndex = \(highestMonthIndex \+ 11\) % 12/);
+  assert.match(resultsPage, /REVIEW PREVENTION/);
+  assert.match(resultsPage, /HIGHEST 2025 RATE/);
+  assert.match(resultsPage, /of unique initial inspections that month/);
+  assert.match(resultsPage, /historical prevention reminder—not a prediction of current pest activity or a future inspection/);
+});
+
 test("serves a dedicated registered-provider comparison page", async () => {
   const response = await render("/restaurant/40732665/providers");
   assert.equal(response.status, 200);

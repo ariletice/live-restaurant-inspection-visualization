@@ -3,9 +3,19 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { fallbackPestAnalysis, peakMonth, pestConfig, pestTypes, type PestType } from "../../pest-data";
 import { pestGuidance, type RestaurantHistory, type RestaurantMatch } from "../restaurant-types";
 
 type HistoryState = "loading" | "success" | "error";
+
+const fullMonthNames = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function pestTypeForCode(code: string): PestType | undefined {
+  return pestTypes.find((pest) => pestConfig[pest].code === code);
+}
 
 function address(restaurant: RestaurantMatch) {
   return [restaurant.building, restaurant.street, restaurant.borough, restaurant.zipcode]
@@ -93,6 +103,21 @@ export default function RestaurantResultsPage() {
   const pestOtherCount = pestInspections.length - pestInitialCount - pestReinspectionCount;
   const pestDates = pestInspections.map((inspection) => inspection.date).sort();
   const pestLabels = [...new Set(pestInspections.flatMap((inspection) => inspection.pestViolations.map((violation) => pestGuidance[violation.code].label)))];
+  const pestHistoryCounts = useMemo(() => {
+    const counts = Object.fromEntries(pestTypes.map((pest) => [pest, 0])) as Record<PestType, number>;
+    pestInspections.forEach((inspection) => {
+      const pestsInInspection = new Set(
+        inspection.pestViolations
+          .map((violation) => pestTypeForCode(violation.code))
+          .filter((pest): pest is PestType => Boolean(pest)),
+      );
+      pestsInInspection.forEach((pest) => { counts[pest] += 1; });
+    });
+    return counts;
+  }, [pestInspections]);
+  const calendarPests = pestInspections.length
+    ? pestTypes.filter((pest) => pestHistoryCounts[pest] > 0)
+    : pestTypes;
   const nearbyComparison = history?.nearbyComparison.status === "available" ? history.nearbyComparison : null;
   const nearbyScoreDifference = nearbyComparison
     ? nearbyComparison.targetInspection.score - nearbyComparison.nearbyMedianScore
@@ -169,6 +194,70 @@ export default function RestaurantResultsPage() {
                   <p className="history-caution">These are historical inspection findings, not a statement about the restaurant&apos;s current condition.</p>
                 </section>
               )}
+
+              <section className="prevention-calendar" aria-labelledby="prevention-calendar-heading">
+                <div className="prevention-calendar-heading">
+                  <p className="eyebrow">Historical prevention calendar</p>
+                  <h3 id="prevention-calendar-heading">
+                    {pestInspections.length
+                      ? "Use this restaurant’s history to time preventative checks."
+                      : "Use citywide patterns to keep prevention on the calendar."}
+                  </h3>
+                  <p>
+                    {pestInspections.length
+                      ? "The calendar connects pest types found in this restaurant’s available record with their highest monthly inspection rates across NYC in 2025."
+                      : "No critical pest type appears in this restaurant’s available record, so this general calendar shows the highest monthly inspection rate for all four pest categories across NYC in 2025."}
+                  </p>
+                </div>
+
+                <div className={`prevention-calendar-grid${calendarPests.length === 1 ? " has-one-pest" : ""}`}>
+                  {calendarPests.map((pest) => {
+                    const config = pestConfig[pest];
+                    const values = fallbackPestAnalysis.monthly[pest];
+                    const highestMonthIndex = peakMonth(values);
+                    const reminderMonthIndex = (highestMonthIndex + 11) % 12;
+                    const highestRate = values[highestMonthIndex];
+                    const guidanceCode = config.code as keyof typeof pestGuidance;
+                    const historyCount = pestHistoryCounts[pest];
+                    return (
+                      <article className={`prevention-calendar-card calendar-${pest}`} key={pest}>
+                        <header>
+                          <span className="prevention-pest-mark" aria-hidden="true">{config.mark}</span>
+                          <div>
+                            <p>{historyCount
+                              ? `Recorded in ${historyCount} available inspection${historyCount === 1 ? "" : "s"}`
+                              : "General citywide pattern"}</p>
+                            <h4>{config.name}</h4>
+                          </div>
+                        </header>
+
+                        <div
+                          className="prevention-timing"
+                          role="img"
+                          aria-label={`Review ${config.singular} prevention in ${fullMonthNames[reminderMonthIndex]}, before the highest recorded 2025 inspection rate in ${fullMonthNames[highestMonthIndex]}.`}
+                        >
+                          <div className="reminder-month">
+                            <span>REVIEW PREVENTION</span>
+                            <strong>{fullMonthNames[reminderMonthIndex]}</strong>
+                          </div>
+                          <span className="timing-arrow" aria-hidden="true">→</span>
+                          <div className="highest-month">
+                            <span>HIGHEST 2025 RATE</span>
+                            <strong>{fullMonthNames[highestMonthIndex]}</strong>
+                          </div>
+                        </div>
+
+                        <p className="prevention-rate"><strong>{highestRate.toFixed(1)}%</strong> of unique initial inspections that month recorded this critical {config.singular} violation.</p>
+                        <p className="prevention-action"><b>What to review:</b> {pestGuidance[guidanceCode].nextStep}</p>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <p className="prevention-calendar-method">
+                  Based on a saved analysis of {fallbackPestAnalysis.inspectionCount.toLocaleString("en-US")} unique NYC initial inspections from 2025. This is a historical prevention reminder—not a prediction of current pest activity or a future inspection.
+                </p>
+              </section>
 
               <section className="inspection-timeline" aria-labelledby="inspection-timeline-heading">
                 <div className="timeline-heading"><p className="eyebrow">Inspection timeline</p><h3 id="inspection-timeline-heading">How the record changed over time</h3><p>Every available inspection is shown in date order. A later result is not automatically the result of the preceding reinspection.</p></div>
