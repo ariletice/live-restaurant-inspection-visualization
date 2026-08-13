@@ -342,7 +342,7 @@ export default function Home() {
           <div className="scene cover-scene">
             <div className="cover-copy">
               <p className="eyebrow">What <span className="inspection-count-highlight">{analysis.inspectionCount.toLocaleString()}</span> NYC initial inspections revealed</p>
-              <h1>Is there one <span className="text-emphasis emphasis-orange">pest season</span> for every NYC restaurant?</h1>
+              <h1>Is there one pest season for every NYC restaurant?</h1>
               <p className="dek">Every NYC restaurant is scheduled for <mark className="inspection-fact-highlight">at least one unannounced health inspection each year</mark>. We analyzed 2025 inspection data to find when inspectors recorded critical rat, mouse, roach, and fly violations most often.</p>
               <button className="primary-button" onClick={goNext}>Explore the pattern <span>→</span></button>
             </div>
@@ -361,7 +361,7 @@ export default function Home() {
           <div className="scene context-scene">
             <div className="context-copy">
               <p className="eyebrow">Why timing matters</p>
-              <h2>Prevention starts <span className="text-emphasis emphasis-green">before</span> an inspector arrives.</h2>
+              <h2>Prevention starts before an inspector arrives.</h2>
               <p>Critical pest violations can affect a restaurant’s grade, reputation, and ability to operate safely. Understanding when inspectors most often record them can help restaurant teams decide when to strengthen prevention—without predicting any individual inspection.</p>
             </div>
             <div className="split-pattern">

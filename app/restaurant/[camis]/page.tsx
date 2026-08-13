@@ -121,7 +121,7 @@ export default function RestaurantResultsPage() {
       <section className="inspection-results standalone-results" aria-labelledby="inspection-results-heading">
         <div className="search-heading">
           <span>02</span>
-          <div><p className="eyebrow">Verified inspection history</p><h2 id="inspection-results-heading">Understand <span className="text-emphasis emphasis-blue">the record</span></h2></div>
+          <div><p className="eyebrow">Verified inspection history</p><h2 id="inspection-results-heading">Understand the record</h2></div>
         </div>
 
         {historyState === "loading" && <div className="history-state" role="status"><i /><strong>Loading inspection history…</strong><span>We are matching records using the restaurant&apos;s CAMIS identifier.</span></div>}
@@ -286,7 +286,7 @@ export default function RestaurantResultsPage() {
 
       {historyState === "success" && (
         <section className="professional-help">
-          <div><p className="eyebrow">Need professional support?</p><h2>Bring the record to a <span className="text-emphasis emphasis-green">licensed pest professional.</span></h2><p>A provider can inspect current conditions and help turn a historical finding into a prevention plan. A past inspection record does not confirm that a problem is still present.</p></div>
+          <div><p className="eyebrow">Need professional support?</p><h2>Bring the record to a licensed pest professional.</h2><p>A provider can inspect current conditions and help turn a historical finding into a prevention plan. A past inspection record does not confirm that a problem is still present.</p></div>
           <a href="https://extapps.dec.ny.gov/nyspad/find?1" target="_blank" rel="noreferrer">Search New York pesticide businesses ↗</a>
         </section>
       )}

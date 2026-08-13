@@ -121,7 +121,7 @@ export default function RestaurantPage() {
       <section className="tool-hero">
         <div>
           <p className="eyebrow">A practical next step</p>
-          <h1>What does NYC inspection data say about <span className="text-emphasis emphasis-green">your restaurant?</span></h1>
+          <h1>What does NYC inspection data say about your restaurant?</h1>
           <p>Find the correct location first. Its verified pest-related inspection history will open on a separate results page.</p>
         </div>
         <aside>
@@ -133,7 +133,7 @@ export default function RestaurantPage() {
       <section className="restaurant-search" aria-labelledby="restaurant-search-heading">
         <div className="search-heading">
           <span>01</span>
-          <div><p className="eyebrow">Find the correct location</p><h2 id="restaurant-search-heading">Find <span className="text-emphasis emphasis-orange">your restaurant</span></h2></div>
+          <div><p className="eyebrow">Find the correct location</p><h2 id="restaurant-search-heading">Find your restaurant</h2></div>
         </div>
         <div
           className="autocomplete-shell"
