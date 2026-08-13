@@ -204,6 +204,40 @@ test("serves inspection history on a separate CAMIS results page", async () => {
   assert.match(html, /Search another restaurant/i);
 });
 
+test("connects every restaurant record to registered professional help", async () => {
+  const resultsPage = await readFile(new URL("../app/restaurant/[camis]/page.tsx", import.meta.url), "utf8");
+  assert.match(resultsPage, /pestInspections\.length \?/);
+  assert.match(resultsPage, /Turn the record into a prevention plan/);
+  assert.match(resultsPage, /Keep prevention on your schedule/);
+  assert.match(resultsPage, /href=\{`\/restaurant\/\$\{camis\}\/providers`\}/);
+  assert.match(resultsPage, /Find Licensed Pest-Control Help/);
+});
+
+test("serves a dedicated registered-provider comparison page", async () => {
+  const response = await render("/restaurant/40732665/providers");
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Find registered pest-control help/i);
+  assert.match(html, /Category 7F/i);
+  assert.match(html, /Searching current New York State registrations/i);
+  assert.match(html, /Back to inspection record/i);
+});
+
+test("explains provider ordering, distance, verification, and trust limits", async () => {
+  const providerPage = await readFile(new URL("../app/restaurant/[camis]/providers/page.tsx", import.meta.url), "utf8");
+  assert.match(providerPage, /How these results are ordered/);
+  assert.match(providerPage, /approx\. miles/);
+  assert.match(providerPage, /does not confirm the provider&apos;s street address or service area/);
+  assert.match(providerPage, /Search on Google Maps/);
+  assert.match(providerPage, /Verify Registration/);
+  assert.match(providerPage, /Pesticides Business\/Agencies/);
+  assert.match(providerPage, /updated monthly/);
+  assert.match(providerPage, /is not an endorsement by NYC, New York State, or NYC Pest Prep/);
+  assert.match(providerPage, /Expand to 15 miles/);
+  assert.match(providerPage, /role="alert"/);
+  assert.doesNotMatch(providerPage, /\b(best|approved|recommended)\b/i);
+});
+
 test("connects the story and MVP with the required customer states", async () => {
   const [story, searchPage, resultsPage, searchRoute, historyRoute] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),

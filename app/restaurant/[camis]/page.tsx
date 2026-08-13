@@ -286,8 +286,12 @@ export default function RestaurantResultsPage() {
 
       {historyState === "success" && (
         <section className="professional-help">
-          <div><p className="eyebrow">Need professional support?</p><h2>Bring the record to a licensed pest professional.</h2><p>A provider can inspect current conditions and help turn a historical finding into a prevention plan. A past inspection record does not confirm that a problem is still present.</p></div>
-          <a href="https://extapps.dec.ny.gov/nyspad/find?1" target="_blank" rel="noreferrer">Search New York pesticide businesses ↗</a>
+          {pestInspections.length ? (
+            <div><p className="eyebrow">Need professional support?</p><h2>Turn the record into a prevention plan.</h2><p>A registered provider can inspect current conditions and help address the pest types recorded in this restaurant&apos;s history. A past finding does not confirm that a problem is still present.</p></div>
+          ) : (
+            <div><p className="eyebrow">Plan ahead</p><h2>Keep prevention on your schedule.</h2><p>No critical pest finding appears in the available history, but a registered provider can still assess entry points, sanitation risks, and monitoring practices.</p></div>
+          )}
+          <Link href={`/restaurant/${camis}/providers`}>Find Licensed Pest-Control Help →</Link>
         </section>
       )}
 
